@@ -43,10 +43,10 @@ def ip_solve(counts, dist, num_solutions=50):
         current_prob = 1
         for v, h in zip(values, ordering):
             if v > 0:
-                current_sol += [h] * int(v)
-                current_prob *= dist[h]**v
+                current_sol += [h] * round(v)
+                # current_prob *= dist[h]**v
         current_sol = tuple(current_sol)
-        current_prob *= perms_to_combs(current_sol)
+        # current_prob *= perms_to_combs(current_sol)
         sols[current_sol] = current_prob
     if sum(sols.values()) == 0:
         return {}
