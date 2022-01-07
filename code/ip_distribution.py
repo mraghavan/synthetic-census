@@ -48,6 +48,8 @@ def ip_solve(counts, dist, num_solutions=50):
         current_sol = tuple(current_sol)
         current_prob *= perms_to_combs(current_sol)
         sols[current_sol] = current_prob
+    if sum(sols.values()) == 0:
+        return {}
     return normalize(sols)
 
 if __name__ == '__main__':
