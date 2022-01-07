@@ -28,9 +28,8 @@ def perms_to_combs(seq):
 
 @lru_cache(maxsize=None)
 def scipy_multinomial(params):
-     if len(params) == 1:
-         return 1
-     coeff = (comb(sum(params), params[-1], exact=True) *
-              scipy_multinomial(params[:-1]))
-     return coeff
-
+    if len(params) == 1:
+        return 1
+    coeff = (comb(sum(params), params[-1], exact=True) *
+            scipy_multinomial(params[:-1]))
+    return coeff
