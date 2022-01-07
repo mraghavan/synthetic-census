@@ -4,6 +4,7 @@ import multiprocessing
 import time
 from ip_distribution import ip_solve
 from encoding import *
+from math import log
 
 class SolverParams():
     def __init__(self, num_sols):
@@ -30,7 +31,7 @@ def filter_dist(dist, counts):
 def recompute_probs(sol, dist):
     new_sol = {}
     for seq in sol:
-        new_sol[seq] = prod(dist[hh] for hh in seq) * perms_to_combs(seq)
+        new_sol[seq] = np.exp(sum(log(dist[hh]) for hh in seq) + log(perms_to_combs(seq)))
     return normalize(new_sol)
 
 def solve(row, all_dists, fallback_dist):
