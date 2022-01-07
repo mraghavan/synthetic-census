@@ -12,17 +12,25 @@ def read_block_data():
     return pd.read_csv(get_block_out_file())
 
 if __name__ == '__main__':
-    print(sys.argv)
-    sys.exit(0)
+    if len(sys.argv) >= 3:
+        task = int(sys.argv[1])
+        num_tasks = int(sys.argv[2])
+    else:
+        task = 1
+        num_tasks = 1
     print_config()
     SOLVER_PARAMS.num_sols = NUM_SOLS
 
     df = read_block_data()
-    print(df.head())
     # non-empty rows
     df = df[df['H7X001'] > 0]
-    print(df.head())
+    n = len(df)
+    first_ind = int((task-1) / num_tasks * n)
+    last_ind = int(task/num_tasks * n)
+    print('Processing indices', first_ind, 'through', last_ind)
+    df = df.iloc[first_ind:last_ind+1]
     print(len(df), 'blocks to process')
+    print(df.head())
     all_dists, fallback_dist = read_microdata(get_micro_file())
     errors = []
     for ind, row in df.iterrows():
