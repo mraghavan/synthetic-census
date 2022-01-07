@@ -41,6 +41,13 @@ if __name__ == '__main__':
         if len(sol) > 0:
             if WRITE:
                 with open(id_file, 'wb') as f:
-                    pickle.dump({identifier: sol}, f)
+                    pickle.dump({
+                        'id': identifier,
+                        'sol': sol,
+                        'level': SOLVER_RESULTS.level,
+                        'complete': SOLVER_RESULTS.status == SolverResults.OK,
+                        'age': SOLVER_RESULTS.use_age,
+                        },
+                        f)
         print('errors', errors, file=sys.stderr)
     print(len(errors), 'errors')
