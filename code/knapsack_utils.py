@@ -26,7 +26,7 @@ def perms_to_combs(seq):
     t = tuple(c.values())
     return scipy_multinomial(t)
 
-@lru_cache(maxsize=None)
+# @lru_cache(maxsize=None)
 def scipy_multinomial(params):
     if len(params) == 1:
         return 1

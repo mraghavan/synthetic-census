@@ -5,6 +5,8 @@ import pandas as pd
 from build_micro_dist import read_microdata
 import pickle
 import sys
+import psutil
+import gc
 
 def read_block_data():
     return pd.read_csv(get_block_out_file())
@@ -24,6 +26,8 @@ if __name__ == '__main__':
     for ind, row in df.iterrows():
         print()
         print('index', ind)
+        print('Current memory usage', psutil.Process().memory_info().rss / (1024 * 1024), 'MB')
+        print('GC stats', gc.get_count())
         identifier = str(row['identifier'])
         id_file = get_dist_dir() + identifier + '.pkl'
         if os.path.exists(id_file):
