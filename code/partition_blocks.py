@@ -27,7 +27,6 @@ if __name__ == '__main__':
         print()
         print('index', ind)
         print('Current memory usage', psutil.Process().memory_info().rss / (1024 * 1024), 'MB')
-        print('GC stats', gc.get_count())
         identifier = str(row['identifier'])
         id_file = get_dist_dir() + identifier + '.pkl'
         if os.path.exists(id_file):
@@ -38,8 +37,7 @@ if __name__ == '__main__':
         if SOLVER_RESULTS.status in (SolverResults.BAD_DIST, SolverResults.BAD_COUNTS):
             print(ind, SOLVER_RESULTS.status, file=sys.stderr)
             errors.append(ind)
-        elif SOLVER_RESULTS.status != SolverResults.OK:
-            print(ind, SOLVER_RESULTS.status, file=sys.stderr)
+        print('SOLVER LEVEL', SOLVER_RESULTS.level, 'USED AGE', SOLVER_RESULTS.use_age, 'STATUS', SOLVER_RESULTS.status)
         if len(sol) > 0:
             if WRITE:
                 with open(id_file, 'wb') as f:

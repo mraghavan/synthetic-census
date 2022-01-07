@@ -22,6 +22,8 @@ class SolverResults():
 
     def __init__(self):
         self.status = SolverResults.OK
+        self.level = 1
+        self.use_age = True
 
 SOLVER_RESULTS = SolverResults()
 
@@ -35,13 +37,16 @@ def recompute_probs(sol, dist):
     return normalize(new_sol)
 
 def solve(row, all_dists, fallback_dist):
+    use_age = has_valid_age_data(row)
+    SOLVER_RESULTS.level = 1
+    SOLVER_RESULTS.use_age = use_age
     hhs = row_to_hhs(row)
     if len(hhs) == 0:
-        SOLVER_RESULTS.status = SolverResults.BAD_DIST
-        print('Returning early')
-        return {}
+        return solve_fallback(row, fallback_dist, level=3)
     hh_ordering = list(sorted(hhs.keys()))
-    counts = encode_row(row)
+    counts = get_race_counts(row)
+    if use_age:
+        counts += get_over_18_counts(row)
     full_counts = counts + tuple(hhs[hh] for hh in hh_ordering)
     full_dist = {}
     n = len(hh_ordering)
@@ -50,49 +55,77 @@ def solve(row, all_dists, fallback_dist):
             dist = all_dists[hh]
         except KeyError as e:
             print('Missing key', e)
-            SOLVER_RESULTS.status = SolverResults.BAD_DIST
-            return {}
-        i_tup = [0] * n
-        i_tup[i] = 1
-        i_tup = tuple(i_tup)
+            return solve_fallback(row, fallback_dist)
+        i_tup = make_one_hot(i, n)
         for hh_counts, prob in dist.items():
-            hh_encoded = encode_hh(hh_counts, hh[0]) + i_tup
+            hh_encoded = hh_counts[:-1]
+            if use_age:
+                over_18_tup = [0] * len(Race)
+                over_18_tup[hh[0].value - 1] = hh_counts[-1]
+                hh_encoded += tuple(over_18_tup)
+            hh_encoded += i_tup
             full_dist[hh_encoded] = prob
 
-    print('counts', counts)
     print('full_counts', full_counts)
     print('hhs', hhs)
     solution = recompute_probs(ip_solve(full_counts, full_dist, num_solutions=SOLVER_PARAMS.num_sols), full_dist)
     if len(solution) == 0:
-        SOLVER_RESULTS.status = SolverResults.BAD_COUNTS
-        return solve_race_counts_only(row, fallback_dist)
+        return solve_fallback(row, fallback_dist)
     if len(solution) >= SOLVER_PARAMS.num_sols:
         SOLVER_RESULTS.status = SolverResults.INCOMPLETE
     else:
         SOLVER_RESULTS.status = SolverResults.OK
-    solution = normalize(simplify_solution(solution))
-    return solution
-
-def solve_race_counts_only(row, fallback_dist):
-    # encode as (race_counts) + (total_num_over_18)
-    print('Falling back to second solver')
-    counts = encode_row_fallback(row)
-    print('counts', counts)
-    solution = recompute_probs(ip_solve(counts, fallback_dist, num_solutions=SOLVER_PARAMS.num_sols), fallback_dist)
-    if len(solution) == 0:
-        SOLVER_RESULTS.status = SolverResults.BAD_COUNTS
-        return {}
-    if len(solution) >= SOLVER_PARAMS.num_sols:
-        SOLVER_RESULTS.status = SolverResults.FALLBACK_INCOMPLETE
+    if use_age:
+        solution = normalize(decode_solution(solution, decode_1))
     else:
-        SOLVER_RESULTS.status = SolverResults.FALLBACK
-    solution = normalize(simplify_solution(solution))
+        solution = normalize(decode_solution(solution, decode_1_no_age))
     return solution
 
-def simplify_solution(solution):
+def solve_fallback(row, fallback_dist, level=2):
+    assert level in (2, 3)
+    print('Falling back to level', level)
+    use_age = has_valid_age_data(row)
+    SOLVER_RESULTS.level = level
+    SOLVER_RESULTS.use_age = use_age
+    counts = get_race_counts(row)
+    if use_age:
+        counts += (get_over_18_total(row),)
+    if level == 2:
+        counts += (get_num_hhs(row),)
+    if level == 2:
+        if use_age:
+            encode = encode_2
+            decode = decode_2
+        else:
+            encode = encode_2_no_age
+            decode = decode_2_no_age
+    else:
+        if use_age:
+            encode = encode_3
+        else:
+            encode = encode_3_no_age
+        decode = decode_3
+
+    dist = {encode(hh): prob for hh, prob in fallback_dist.items() if is_eligible(hh, counts)}
+
+    solution = recompute_probs(ip_solve(counts, dist, num_solutions=SOLVER_PARAMS.num_sols), dist)
+    if len(solution) == 0:
+        if level == 2:
+            return solve_fallback(row, fallback_dist, level=3)
+        else:
+            SOLVER_RESULTS.status = SolverResults.BAD_COUNTS
+            return {}
+    if len(solution) >= SOLVER_PARAMS.num_sols:
+        SOLVER_RESULTS.status = SolverResults.INCOMPLETE
+    else:
+        SOLVER_RESULTS.status = SolverResults.OK
+    solution = normalize(decode_solution(solution, decode))
+    return solution
+
+def decode_solution(solution, decoder):
     simplified = Counter()
     for hhs, prob in solution.items():
-        simp_hhs = tuple(decode_hh(coded) for coded in hhs)
+        simp_hhs = tuple(decoder(coded) for coded in hhs)
         simplified[simp_hhs] += prob
     return simplified
 
