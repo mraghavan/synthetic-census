@@ -12,6 +12,8 @@ def read_block_data():
     return pd.read_csv(get_block_out_file())
 
 if __name__ == '__main__':
+    print(sys.argv)
+    sys.exit(0)
     print_config()
     SOLVER_PARAMS.num_sols = NUM_SOLS
 
