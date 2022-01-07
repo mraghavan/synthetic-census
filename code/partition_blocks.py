@@ -18,6 +18,7 @@ if __name__ == '__main__':
     # non-empty rows
     df = df[df['H7X001'] > 0]
     print(df.head())
+    print(len(df), 'blocks to process')
     all_dists, fallback_dist = read_microdata(get_micro_file())
     errors = []
     for ind, row in df.iterrows():
