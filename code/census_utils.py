@@ -132,3 +132,13 @@ def get_over_18_counts(row):
 
 def get_over_18_total(row):
     return row['H8A003']
+
+def get_num_hhs(row):
+    return row['H8M001']
+
+def has_valid_age_data(row):
+    if row['H7X001'] != row['H8A001']:
+        return False
+    elif sum(get_over_18_counts(row)) != get_over_18_total(row):
+        return False
+    return True

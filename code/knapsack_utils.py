@@ -33,3 +33,8 @@ def scipy_multinomial(params):
     coeff = (comb(sum(params), params[-1], exact=True) *
             scipy_multinomial(params[:-1]))
     return coeff
+
+def make_one_hot(i, n):
+    l = [0] * n
+    l[i] = 1
+    return tuple(l)
