@@ -4,6 +4,7 @@
 - Data (see [below](#getting-the-data))
 - `python3`, and the following packages:
   - [numpy](https://numpy.org/)
+  - [scipy](https://scipy.org/)
   - [pandas](https://pandas.pydata.org/)
   - [Gurobi](https://www.gurobi.com/), with a valid license and the python package `gurobipy` installed (`python3 -m pip install gurobipy`)
 
