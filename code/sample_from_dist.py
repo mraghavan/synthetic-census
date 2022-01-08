@@ -66,7 +66,11 @@ def load_sample_and_accs():
                 keys, probs = zip(*results['sol'].items())
                 keys = list(keys)
                 if len(keys) > 1:
-                    breakdown = keys[np.random.choice(range(len(keys)), p=probs)]
+                    try:
+                        breakdown = keys[np.random.choice(range(len(keys)), p=probs)]
+                    except:
+                        print(results['identifier'])
+                        1/0
                 else:
                     breakdown = keys[0]
                 sample[int(results['id'])] = breakdown
