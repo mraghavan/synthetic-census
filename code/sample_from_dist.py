@@ -88,6 +88,7 @@ if __name__ == '__main__':
     for ind, row in df.iterrows():
         if row['identifier'] in errors:
             print('Error index', ind)
+            continue
         try:
             breakdown = sample[row['identifier']]
         except:
