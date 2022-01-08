@@ -12,6 +12,11 @@ def normalize(dist):
     tot = sum(dist.values())
     return {k: v/tot for k, v in dist.items()}
 
+def exp_normalize(dist):
+    m = max(dist.values())
+    dist = {k: np.exp(v - m) for k, v in dist.items()}
+    return normalize(dist)
+
 def get_ordering(dist):
     return sorted(list(dist.keys()))
 

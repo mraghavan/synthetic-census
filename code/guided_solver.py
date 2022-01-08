@@ -31,12 +31,12 @@ def filter_dist(dist, counts):
     return normalize({k: v for k, v in dist.items() if is_eligible(k, counts)})
 
 def recompute_probs(sol, dist):
+    if len(sol) == 0:
+        return {}
     new_sol = {}
     for seq in sol:
-        new_sol[seq] = np.exp(sum(log(dist[hh]) for hh in seq) + log(perms_to_combs(seq)))
-    if sum(new_sol.values()) == 0:
-        return {}
-    return normalize(new_sol)
+        new_sol[seq] = sum(log(dist[hh]) for hh in seq) + log(perms_to_combs(seq))
+    return exp_normalize(new_sol)
 
 def solve(row, all_dists, fallback_dist):
     use_age = has_valid_age_data(row)
