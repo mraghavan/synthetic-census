@@ -94,7 +94,13 @@ if __name__ == '__main__':
         except:
             continue
         r_list = [row[x] for x in df.columns if x in CARRYOVER]
-        block_df = pd.DataFrame((r_list + [sum(b[:-1])] + list(b) + [i] + list(accs[row['identifier']]) for i, b in enumerate(breakdown)), columns=out_df.columns)
+        try:
+            block_df = pd.DataFrame((r_list + [sum(b[:-1])] + list(b) + [i] + list(accs[row['identifier']]) for i, b in enumerate(breakdown)), columns=out_df.columns)
+        except:
+            print('Error:', ind)
+            print(breakdown)
+            print(b)
+            continue
         out_df = pd.concat([out_df, block_df], ignore_index=True)
     out_df.rename(columns=SHORT_RN, inplace=True)
     make_identifier_non_unique(out_df)
