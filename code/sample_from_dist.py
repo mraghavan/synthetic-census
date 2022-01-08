@@ -99,7 +99,6 @@ if __name__ == '__main__':
         except:
             print('Error:', ind)
             print(breakdown)
-            print(b)
             continue
         out_df = pd.concat([out_df, block_df], ignore_index=True)
     out_df.rename(columns=SHORT_RN, inplace=True)
