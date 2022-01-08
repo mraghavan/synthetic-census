@@ -74,13 +74,14 @@ def solve(row, all_dists, fallback_dist):
     print('full_counts', full_counts)
     print('hhs', hhs)
     solution = ip_solve(full_counts, full_dist, num_solutions=SOLVER_PARAMS.num_sols)
-    if len(solution) == 0:
-        return solve_fallback(row, fallback_dist)
     if len(solution) >= SOLVER_PARAMS.num_sols:
         SOLVER_RESULTS.status = SolverResults.INCOMPLETE
     else:
         SOLVER_RESULTS.status = SolverResults.OK
     solution = recompute_probs(solution, full_dist)
+
+    if len(solution) == 0:
+        return solve_fallback(row, fallback_dist)
 
     if use_age:
         solution = normalize(decode_solution(solution, decode_1))
@@ -116,17 +117,17 @@ def solve_fallback(row, fallback_dist, level=2):
     dist = {encode(hh): prob for hh, prob in fallback_dist.items() if is_eligible(hh, counts)}
 
     solution = ip_solve(counts, dist, num_solutions=SOLVER_PARAMS.num_sols)
+    if len(solution) >= SOLVER_PARAMS.num_sols:
+        SOLVER_RESULTS.status = SolverResults.INCOMPLETE
+    else:
+        SOLVER_RESULTS.status = SolverResults.OK
+    solution = recompute_probs(solution, dist)
     if len(solution) == 0:
         if level == 2:
             return solve_fallback(row, fallback_dist, level=3)
         else:
             SOLVER_RESULTS.status = SolverResults.BAD_COUNTS
             return {}
-    if len(solution) >= SOLVER_PARAMS.num_sols:
-        SOLVER_RESULTS.status = SolverResults.INCOMPLETE
-    else:
-        SOLVER_RESULTS.status = SolverResults.OK
-    solution = recompute_probs(solution, dist)
     solution = normalize(decode_solution(solution, decode))
     return solution
 
