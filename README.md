@@ -13,7 +13,7 @@ We'll need a combination of data from NHGIS and PUMS from the census. For a part
 - Get PUMS data [here](https://www2.census.gov/census_2010/12-Stateside_PUMS/)
 - For NHGIS:
   1. Start [here](https://data2.nhgis.org/main)
-  2. Choose dataset `2020_SF1a`
+  2. Choose dataset `2010_SF1a`
   3. Choose geographic level `Block`
   4. Choose tables `P3`, `P16`, `P16A`--`P16G`, `P28`, and `P28A`--`P28G`. In general, we'd prefer to use the more granular `A`--`G` tables, but sometimes we'll have to fall back on the less granular ones.
   5. Click CONTINUE, and click CONTINUE again.
