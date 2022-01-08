@@ -4,8 +4,6 @@ from functools import lru_cache
 import re
 from config import *
 
-# DIST_DIR = 'wy_2010/'
-
 class Race(Enum):
     WHITE = auto()
     BLACK = auto()
@@ -71,6 +69,9 @@ def get_block_file():
 
 def get_block_out_file():
     return BLOCK_OUTPUT_FILE
+
+def get_synthetic_out_file():
+    return get_dist_dir() + 'synthetic.csv'
 
 
 # Sample codes [H9S-H9Y]
