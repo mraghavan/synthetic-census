@@ -34,6 +34,8 @@ def recompute_probs(sol, dist):
     new_sol = {}
     for seq in sol:
         new_sol[seq] = np.exp(sum(log(dist[hh]) for hh in seq) + log(perms_to_combs(seq)))
+    if sum(new_sol.values()) == 0:
+        return {}
     return normalize(new_sol)
 
 def solve(row, all_dists, fallback_dist):
@@ -71,13 +73,15 @@ def solve(row, all_dists, fallback_dist):
 
     print('full_counts', full_counts)
     print('hhs', hhs)
-    solution = recompute_probs(ip_solve(full_counts, full_dist, num_solutions=SOLVER_PARAMS.num_sols), full_dist)
+    solution = ip_solve(full_counts, full_dist, num_solutions=SOLVER_PARAMS.num_sols)
     if len(solution) == 0:
         return solve_fallback(row, fallback_dist)
     if len(solution) >= SOLVER_PARAMS.num_sols:
         SOLVER_RESULTS.status = SolverResults.INCOMPLETE
     else:
         SOLVER_RESULTS.status = SolverResults.OK
+    solution = recompute_probs(solution, full_dist)
+
     if use_age:
         solution = normalize(decode_solution(solution, decode_1))
     else:
@@ -111,7 +115,7 @@ def solve_fallback(row, fallback_dist, level=2):
 
     dist = {encode(hh): prob for hh, prob in fallback_dist.items() if is_eligible(hh, counts)}
 
-    solution = recompute_probs(ip_solve(counts, dist, num_solutions=SOLVER_PARAMS.num_sols), dist)
+    solution = ip_solve(counts, dist, num_solutions=SOLVER_PARAMS.num_sols)
     if len(solution) == 0:
         if level == 2:
             return solve_fallback(row, fallback_dist, level=3)
@@ -122,6 +126,7 @@ def solve_fallback(row, fallback_dist, level=2):
         SOLVER_RESULTS.status = SolverResults.INCOMPLETE
     else:
         SOLVER_RESULTS.status = SolverResults.OK
+    solution = recompute_probs(solution, dist)
     solution = normalize(decode_solution(solution, decode))
     return solution
 
