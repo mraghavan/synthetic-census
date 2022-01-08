@@ -33,9 +33,12 @@ def block_col_select(col):
     return col in USEFUL_COLS or col[:2] in DATA_PREFIXES
 
 def make_identifier(df):
-    df['identifier'] = reduce(operator.add, [df[col].astype(str) for col in ID_COLS])
+    make_identifier_non_unique(df)
     # Make sure identifiers are unique, otherwise need to add more columns to ID_COLS
     assert len(df) == len(df.identifier.unique())
+
+def make_identifier_non_unique(df):
+    df['identifier'] = reduce(operator.add, [df[col].astype(str) for col in ID_COLS])
 
 def get_clean_block_df():
     df = pd.read_csv(get_block_file())
