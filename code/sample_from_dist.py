@@ -59,6 +59,7 @@ def load_sample_and_accs():
     d = get_dist_dir()
     sample = {}
     accs = {}
+    errors = []
     for fname in os.listdir(d):
         if fname.endswith('pkl'):
             with open(d + fname, 'rb') as f:
@@ -69,21 +70,24 @@ def load_sample_and_accs():
                     try:
                         breakdown = keys[np.random.choice(range(len(keys)), p=probs)]
                     except:
-                        print(results['identifier'])
-                        1/0
+                        print('Error', results['id'])
+                        errors.append(int(results['id']))
+                        continue
                 else:
                     breakdown = keys[0]
                 sample[int(results['id'])] = breakdown
                 accs[int(results['id'])] = (results['level'], results['age'])
-    return sample, accs
+    return sample, accs, errors
 
 if __name__ == '__main__':
     df = pd.read_csv(get_block_out_file())
     print(df.head())
     out_df = pd.DataFrame(columns=OUTPUT_COLS)
     print(out_df.head())
-    sample, accs = load_sample_and_accs()
+    sample, accs, errors = load_sample_and_accs()
     for ind, row in df.iterrows():
+        if row['identifier'] in errors:
+            print('Error index', ind)
         try:
             breakdown = sample[row['identifier']]
         except:
