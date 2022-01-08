@@ -78,7 +78,7 @@ if __name__ == '__main__':
     print(df.head())
     out_df = pd.DataFrame(columns=OUTPUT_COLS)
     print(out_df.head())
-    sample, accs = load_dist_and_accs()
+    sample, accs = load_sample_and_accs()
     for ind, row in df.iterrows():
         try:
             breakdown = sample[row['identifier']]
