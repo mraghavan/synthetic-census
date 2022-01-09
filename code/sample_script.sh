@@ -6,6 +6,5 @@
 #SBATCH -o out_files/samp.out  # File to which STDOUT will be written, %j inserts jobid
 #SBATCH -e out_files/samp.err  # File to which STDERR will be written, %j inserts jobid
 #SBATCH --mail-type=END
-[ ! -d "out_files/" ] && mkdir out_files
 module load python/3.8.5-fasrc01
 python3 sample_from_dist.py

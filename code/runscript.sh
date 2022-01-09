@@ -8,7 +8,6 @@
 #SBATCH --array=1-10
 #SBATCH --mail-type=END
 # Make sure the array end is the same as the number passed to partition_blocks
-[ ! -d "out_files/" ] && mkdir out_files
 module load python/3.8.5-fasrc01
 module load gurobi/9.0.2-fasrc01
 python3 -m pip install gurobipy
