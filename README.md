@@ -106,7 +106,8 @@ If this is too slow for larger states, consider parallelizing by:
 - Sampling in parallel, and aggregating later.
 
 # Data schema
-The synthetic dataset has the following columns
+Each row in the synthetic dataset corresponds to a single household.
+The synthetic dataset has the following columns:
 | Name | Description|
 |---|---|
 |`YEAR`|(from NHGIS data) |
