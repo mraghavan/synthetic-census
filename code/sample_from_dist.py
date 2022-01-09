@@ -1,5 +1,6 @@
 from census_utils import *
 from build_block_df import *
+from build_micro_dist import read_microdata
 import os
 import pickle
 import numpy as np
@@ -56,6 +57,8 @@ CARRYOVER = set(OUTPUT_COLS) - POP_COLS
 
 
 def load_sample_and_accs():
+    _, fallback_dist = read_microdata(get_micro_file())
+    del _
     d = get_dist_dir()
     sample = {}
     accs = {}
@@ -75,9 +78,21 @@ def load_sample_and_accs():
                         continue
                 else:
                     breakdown = keys[0]
+                # Add age if missing
+                if len(breakdown[0]) == len(Race):
+                    breakdown = add_age(breakdown, fallback_dist)
                 sample[int(results['id'])] = breakdown
                 accs[int(results['id'])] = (results['level'], results['age'])
     return sample, accs, errors
+
+def add_age(hh_list, dist):
+    out_list = []
+    for hh in hh_list:
+        eligible = [full_hh for full_hh in dist if hh == full_hh[:len(Race)]]
+        probs = np.array([dist[full_hh] for full_hh in eligible])
+        probs = probs / np.sum(probs)
+        out_list.append(eligible[np.random.choice(range(len(eligible)), p=probs)])
+    return tuple(sorted(out_list))
 
 if __name__ == '__main__':
     df = pd.read_csv(get_block_out_file())
