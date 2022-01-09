@@ -49,14 +49,54 @@ To build the block-level dataframe, run `python3 build_block_df.py` (required). 
 
 ## Building the distribution
 Make sure you've fulfilled the [requirements](#requirements).
-Run `python3 partition_blocks.py`.
+Run `python3 partition_blocks.py` (if running locally).
 This will create `.pkl` file for each block in `[output]/[state]`.
 
 ### Running on the RC cluster with `slurm`
-Run `sbatch runscript.sh`.
+If using `slurm`, run `sbatch runscript.sh`. `runscript.sh` should look something like
+```
+#!/bin/bash
+#SBATCH -c 4                # Number of cores (-c)
+#SBATCH -t 0-0:30          # Runtime in D-HH:MM, minimum of 10 minutes
+#SBATCH -p serial_requeue   # Partition to submit to
+#SBATCH --mem=1000           # Memory pool for all cores (see also --mem-per-cpu)
+#SBATCH -o out_files/census.%A_%a.out  # File to which STDOUT will be written, %j inserts jobid
+#SBATCH -e out_files/census.%A_%a.err  # File to which STDERR will be written, %j inserts jobid
+#SBATCH --array=1-10
+#SBATCH --mail-type=END
+# Make sure the array end is the same as the number passed to partition_blocks
+module load python/3.8.5-fasrc01
+module load gurobi/9.0.2-fasrc01
+python3 -m pip install gurobipy
+python3 partition_blocks.py $SLURM_ARRAY_TASK_ID 10
+```
+Make sure the directory `code/out_files` exists before running.
+The requirements are reasonably well-calibrated for Vermont, which contains 17,541 non-empty census blocks.
+I'd recommend scaling the number of parralel jobs (`#SBATCH --array=1-{num}` and `python3 partition_blocks.py $SLURM_ARRAY_TASK_ID {num}`) to be roughly 1 job for 2,000 blocks.
+To prevent too many from running at the same time, use `#SBATCH --array=1-{num}%{max}` where `max` is the maximum number of jobs to run at a time.
+Gurobi can use multiple cores, which is why I've set the number of cores to 4. I haven't experimented with increasing/decreasing this.
 
 ## Generating a dataset
-TBD, will need to load each distribution and sample from it.
+Run `python3 sample_from_dist.py` or `sbatch sample_script.sh`, which should look like
+```
+#!/bin/bash
+#SBATCH -c 1                # Number of cores (-c)
+#SBATCH -t 0-1:00          # Runtime in D-HH:MM, minimum of 10 minutes
+#SBATCH -p serial_requeue   # Partition to submit to
+#SBATCH --mem=1000           # Memory pool for all cores (see also --mem-per-cpu)
+#SBATCH -o out_files/samp.out  # File to which STDOUT will be written, %j inserts jobid
+#SBATCH -e out_files/samp.err  # File to which STDERR will be written, %j inserts jobid
+#SBATCH --mail-type=END
+module load python/3.8.5-fasrc01
+python3 sample_from_dist.py
+```
+This will write the sampled dataset in the file `[output]/[state]/synthetic.csv`, where each row is a sampled household.
+This will take a fairly long time -- about 35 minutes for VT, which has ~17.5k non-empty blocks.
+This suggests something like 2 minutes per thousand blocks, with some buffer to be safe.
+The memory requirements may also need to be increased for larger states.
+If this is too slow for larger states, consider parallelizing by:
+- Sampling multiple datasets at a time.
+- Sampling in parallel, and aggregating later.
 
 # How it works
 To be written
