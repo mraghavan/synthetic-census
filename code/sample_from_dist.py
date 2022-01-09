@@ -111,9 +111,10 @@ if __name__ == '__main__':
         r_list = [row[x] for x in df.columns if x in CARRYOVER]
         try:
             block_df = pd.DataFrame((r_list + [sum(b[:-1])] + list(b) + [i] + list(accs[row['identifier']]) for i, b in enumerate(breakdown)), columns=out_df.columns)
-        except:
+        except Exception as e:
             print('Error:', ind)
             print(breakdown)
+            print(e)
             continue
         out_df = pd.concat([out_df, block_df], ignore_index=True)
     out_df.rename(columns=SHORT_RN, inplace=True)
