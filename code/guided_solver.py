@@ -47,7 +47,10 @@ def solve(row, all_dists, fallback_dist):
         return solve_fallback(row, fallback_dist, level=3)
     elif sum(hhs.values()) == 1 and use_age:
         SOLVER_RESULTS.status = SolverResults.OK
-        return {(get_race_counts(row) + (get_over_18_total(row),),): 1.0}
+        # Need to wrap in 2 tuples
+        # Outer one is a list of solutions
+        # Inner is the list of households within that solution
+        return {((get_race_counts(row) + (get_over_18_total(row),),),): 1.0}
     hh_ordering = list(sorted(hhs.keys()))
     counts = get_race_counts(row)
     if use_age:
