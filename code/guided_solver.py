@@ -50,7 +50,7 @@ def solve(row, all_dists, fallback_dist):
         # Need to wrap in 2 tuples
         # Outer one is a list of solutions
         # Inner is the list of households within that solution
-        return {((get_race_counts(row) + (get_over_18_total(row),),),): 1.0}
+        return {(get_race_counts(row) + (get_over_18_total(row),),): 1.0}
     hh_ordering = list(sorted(hhs.keys()))
     counts = get_race_counts(row)
     if use_age:
