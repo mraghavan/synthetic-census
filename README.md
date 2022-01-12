@@ -141,12 +141,12 @@ The synthetic dataset has the following columns:
 - Number of households of each (householder race, family status, size) type (see tables `P28A`--`G`)
 - (if `AGE_ACCURACY` is true) Number of people age 18+ living in a household for each householder race (see tables `P16A`--`G`)
 
-`Accuracy = 2` means the households match the NHGIS data in terms of:
+`ACCURACY = 2` means the households match the NHGIS data in terms of:
 - Total number of people of each race in the block (see table `P3`)
 - Total number of households (see table `P28`)
 - (if `AGE_ACCURACY` is true) Total number of people 18+ (see table `P16`)
 
-`Accuracy = 3` means the households match the NHGIS data in terms of:
+`ACCURACY = 3` means the households match the NHGIS data in terms of:
 - Total number of people of each race in the block (see table `P3`)
 - (if `AGE_ACCURACY` is true) Total number of people 18+ (see table `P16`)
 
