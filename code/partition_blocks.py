@@ -19,6 +19,9 @@ if __name__ == '__main__':
         task = 1
         num_tasks = 1
     out_file = get_dist_dir() + '%d_%d.pkl' % (task, num_tasks)
+    if os.path.exists(id_file):
+        print(out_file, 'already exists')
+        sys.exit(0)
     print_config()
     SOLVER_PARAMS.num_sols = NUM_SOLS
 
