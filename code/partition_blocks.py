@@ -18,6 +18,7 @@ if __name__ == '__main__':
     else:
         task = 1
         num_tasks = 1
+    out_file = '%d_%d.pkl' % (task, num_tasks)
     print_config()
     SOLVER_PARAMS.num_sols = NUM_SOLS
 
@@ -34,15 +35,16 @@ if __name__ == '__main__':
     hh_dist = encode_hh_dist(read_microdata(get_micro_file()))
     # print(hh_dist.most_common(10))
     errors = []
+    output = []
     for ind, row in df.iterrows():
         print()
         print('index', ind)
         # print('Current memory usage', psutil.Process().memory_info().rss / (1024 * 1024), 'MB')
         identifier = str(row['identifier'])
-        id_file = get_dist_dir() + identifier + '.pkl'
-        if os.path.exists(id_file):
-            print(id_file, 'already exists')
-            continue
+        # id_file = get_dist_dir() + identifier + '.pkl'
+        # if os.path.exists(id_file):
+            # print(id_file, 'already exists')
+            # continue
         sol = solve(row, hh_dist)
         print(len(sol), 'unique solutions')
         if SOLVER_RESULTS.status == SolverResults.UNSOLVED:
@@ -51,14 +53,24 @@ if __name__ == '__main__':
         print('SOLVER LEVEL', SOLVER_RESULTS.level, 'USED AGE', SOLVER_RESULTS.use_age, 'STATUS', SOLVER_RESULTS.status)
         if len(sol) > 0:
             if WRITE:
-                with open(id_file, 'wb') as f:
-                    pickle.dump({
+                output.append({
                         'id': identifier,
                         'sol': sol,
                         'level': SOLVER_RESULTS.level,
                         'complete': SOLVER_RESULTS.status == SolverResults.OK,
                         'age': SOLVER_RESULTS.use_age,
-                        },
-                        f)
+                        })
+                # with open(id_file, 'wb') as f:
+                    # pickle.dump({
+                        # 'id': identifier,
+                        # 'sol': sol,
+                        # 'level': SOLVER_RESULTS.level,
+                        # 'complete': SOLVER_RESULTS.status == SolverResults.OK,
+                        # 'age': SOLVER_RESULTS.use_age,
+                        # },
+                        # f)
         print('errors', errors, file=sys.stderr)
+    if WRITE:
+        with open(out_file, 'wb') as f:
+            pickle.dump(output, f)
     print(len(errors), 'errors')
