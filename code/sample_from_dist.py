@@ -4,6 +4,8 @@ from build_micro_dist import read_microdata
 import os
 import pickle
 import numpy as np
+from collections import Counter
+from knapsack_utils import normalize
 
 POP_COLS = {
         'H7X002',
@@ -47,48 +49,58 @@ OUTPUT_COLS = [
         'H7X006',
         'H7X007',
         'H7X008',
+        'NUM_HISP',
         '18_PLUS',
         'HH_NUM',
         'ACCURACY',
         'AGE_ACCURACY',
         ]
 
+RECORD_LENGTH = len(Race) + 2
+
 CARRYOVER = set(OUTPUT_COLS) - POP_COLS
 
+def process_dist(dist):
+    new_dist = Counter()
+    for tup, prob in dist.items():
+        new_dist[tup.race_counts + (tup.eth_count, tup.n_over_18)] += prob
+    return normalize(new_dist)
 
 def load_sample_and_accs():
-    _, fallback_dist = read_microdata(get_micro_file())
-    del _
+    dist = read_microdata(get_micro_file())
+    dist = process_dist(dist)
     d = get_dist_dir()
     sample = {}
     accs = {}
     errors = []
     for fname in os.listdir(d):
-        if fname.endswith('pkl'):
+        if re.match('[0-9]+_[0-9]+.pkl', fname):
+            print('Reading from', d+fname)
             with open(d + fname, 'rb') as f:
-                results = pickle.load(f)
-                keys, probs = zip(*results['sol'].items())
-                keys = list(keys)
-                if len(keys) > 1:
-                    try:
-                        breakdown = keys[np.random.choice(range(len(keys)), p=probs)]
-                    except:
-                        print('Error', results['id'])
-                        errors.append(int(results['id']))
-                        continue
-                else:
-                    breakdown = keys[0]
-                # Add age if missing
-                if len(breakdown[0]) == len(Race):
-                    breakdown = add_age(breakdown, fallback_dist)
-                sample[int(results['id'])] = breakdown
-                accs[int(results['id'])] = (results['level'], results['age'])
+                result_list = pickle.load(f)
+                for results in result_list:
+                    keys, probs = zip(*results['sol'].items())
+                    keys = list(keys)
+                    if len(keys) > 1:
+                        try:
+                            breakdown = keys[np.random.choice(range(len(keys)), p=probs)]
+                        except:
+                            print('Error', results['id'])
+                            errors.append(int(results['id']))
+                            continue
+                    else:
+                        breakdown = keys[0]
+                    # Add age if missing
+                    if len(breakdown[0]) == RECORD_LENGTH - 1:
+                        breakdown = add_age(breakdown, dist)
+                    sample[int(results['id'])] = breakdown
+                    accs[int(results['id'])] = (results['level'], results['age'])
     return sample, accs, errors
 
 def add_age(hh_list, dist):
     out_list = []
     for hh in hh_list:
-        eligible = [full_hh for full_hh in dist if hh == full_hh[:len(Race)]]
+        eligible = [full_hh for full_hh in dist if hh == full_hh[:RECORD_LENGTH-1]]
         probs = np.array([dist[full_hh] for full_hh in eligible])
         probs = probs / np.sum(probs)
         out_list.append(eligible[np.random.choice(range(len(eligible)), p=probs)])
@@ -110,7 +122,7 @@ if __name__ == '__main__':
             continue
         r_list = [row[x] for x in df.columns if x in CARRYOVER]
         try:
-            block_df = pd.DataFrame((r_list + [sum(b[:-1])] + list(b) + [i] + list(accs[row['identifier']]) for i, b in enumerate(breakdown)), columns=out_df.columns)
+            block_df = pd.DataFrame((r_list + [sum(b[:-2])] + list(b) + [i] + list(accs[row['identifier']]) for i, b in enumerate(breakdown)), columns=out_df.columns)
         except Exception as e:
             print('Error:', ind)
             print(breakdown)

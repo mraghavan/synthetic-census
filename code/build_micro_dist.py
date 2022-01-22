@@ -36,6 +36,20 @@ class Household():
             c[(person.race, person.eth)] += 1
         return tuple(c[rh] for rh in RACE_HIS_ENUM)
 
+    @property
+    def race_counts(self):
+        c = Counter()
+        for person in self.people:
+            c[person.race] += 1
+        return tuple(c[r] for r in Race)
+
+    @property
+    def eth_count(self):
+        c = 0
+        for person in self.people:
+            c += person.eth
+        return c
+
     def fix_family(self):
         if self.size == 1:
             self.is_family = False
