@@ -18,7 +18,7 @@ if __name__ == '__main__':
     else:
         task = 1
         num_tasks = 1
-    out_file = '%d_%d.pkl' % (task, num_tasks)
+    out_file = get_dist_dir() + '%d_%d.pkl' % (task, num_tasks)
     print_config()
     SOLVER_PARAMS.num_sols = NUM_SOLS
 
@@ -71,6 +71,7 @@ if __name__ == '__main__':
                         # f)
         print('errors', errors, file=sys.stderr)
     if WRITE:
+        print('Writing to', out_file)
         with open(out_file, 'wb') as f:
             pickle.dump(output, f)
     print(len(errors), 'errors')
