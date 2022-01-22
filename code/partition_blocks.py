@@ -31,23 +31,26 @@ if __name__ == '__main__':
     df = df.iloc[first_ind:last_ind+1]
     print(len(df), 'blocks to process')
     print(df.head())
-    all_dists, fallback_dist = read_microdata(get_micro_file())
+    hh_dist = encode_hh_dist(read_microdata(get_micro_file()))
+    # print(hh_dist.most_common(10))
     errors = []
     for ind, row in df.iterrows():
         print()
         print('index', ind)
-        print('Current memory usage', psutil.Process().memory_info().rss / (1024 * 1024), 'MB')
+        # print('Current memory usage', psutil.Process().memory_info().rss / (1024 * 1024), 'MB')
         identifier = str(row['identifier'])
         id_file = get_dist_dir() + identifier + '.pkl'
         if os.path.exists(id_file):
             print(id_file, 'already exists')
             continue
-        sol = solve(row, all_dists, fallback_dist)
+        sol = solve(row, hh_dist)
         print(len(sol), 'unique solutions')
-        if SOLVER_RESULTS.status in (SolverResults.BAD_DIST, SolverResults.BAD_COUNTS):
+        if SOLVER_RESULTS.status == SolverResults.UNSOLVED:
             print(ind, SOLVER_RESULTS.status, file=sys.stderr)
             errors.append(ind)
         print('SOLVER LEVEL', SOLVER_RESULTS.level, 'USED AGE', SOLVER_RESULTS.use_age, 'STATUS', SOLVER_RESULTS.status)
+        if SOLVER_RESULTS.level > 2:
+            break
         if len(sol) > 0:
             if WRITE:
                 with open(id_file, 'wb') as f:

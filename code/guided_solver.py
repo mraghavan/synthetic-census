@@ -6,6 +6,30 @@ from ip_distribution import ip_solve
 from encoding import *
 from math import log
 
+def encode_hh_dist(dist):
+    new_dist = Counter()
+    for hh, prob in dist.items():
+        # Race X eth pairs
+        rh_counts = hh.rh_counts
+        age_race = tuple(hh.n_over_18 * make_one_hot_np(hh.holder.race.value-1, len(Race)))
+        age_eth = (hh.holder.eth * hh.n_over_18,)
+        type_encoding = make_one_hot_np(TYPE_INDEX[hh.race_type], len(TYPE_INDEX))
+        if hh.holder.eth == 1:
+            type_encoding += make_one_hot_np(TYPE_INDEX[hh.eth_type], len(TYPE_INDEX))
+        type_encoding = tuple(type_encoding)
+        num_hh = (1,)
+        new_dist[rh_counts + age_race + age_eth + type_encoding + num_hh] += prob
+    return new_dist
+
+def encode_row(row):
+    rh_counts = get_rh_counts(row)
+    age_race = get_over_18_counts(row)
+    age_eth = (get_age_eth(row),)
+    type_encoding = get_types(row)
+    num_hh = (get_num_hhs(row),)
+    print([(t, te) for te, t in zip(type_encoding, TYPES) if te > 0])
+    return rh_counts + age_race + age_eth + type_encoding + num_hh
+
 class SolverParams():
     def __init__(self, num_sols):
         self.num_sols = num_sols
@@ -14,10 +38,7 @@ SOLVER_PARAMS = SolverParams(100)
 
 class SolverResults():
     OK = 'Ok'
-    BAD_DIST = 'Insufficient distribution'
-    FALLBACK = 'Used fallback solver'
-    FALLBACK_INCOMPLETE = 'Used fallback solver, not all solutions found'
-    BAD_COUNTS = 'Counts don\'t match'
+    UNSOLVED = 'Unsolved'
     INCOMPLETE = 'Not all solutions found'
 
     def __init__(self):
@@ -38,7 +59,103 @@ def recompute_probs(sol, dist):
         new_sol[seq] = sum(log(dist[hh]) for hh in seq) + log(perms_to_combs(seq))
     return exp_normalize(new_sol)
 
-def solve(row, all_dists, fallback_dist):
+def reduce_dist(dist, func, use_age):
+    c = Counter()
+    for k, v in dist.items():
+        c[func(k, use_age)] += v
+    return normalize(c)
+
+def reduce_2(tup, use_age):
+    new_t = tup[:2*len(Race)]
+    if use_age:
+        new_t += (sum(tup[2*len(Race):3*len(Race)]),)
+    # num HH
+    new_t += (tup[-1],)
+    return new_t
+
+def reduce_3(tup, use_age):
+    eth_0 = np.array(tup[:len(Race)], dtype=int)
+    eth_1 = np.array(tup[len(Race):2*len(Race)], dtype=int)
+    r_counts = tuple(eth_0 + eth_1)
+    eth = (sum(eth_1),)
+    if use_age:
+        age = (sum(tup[2*len(Race):3*len(Race)]),)
+    else:
+        age = ()
+    return r_counts + eth + age
+
+def to_sol_1(tup, use_age):
+    eth_0 = np.array(tup[:len(Race)], dtype=int)
+    eth_1 = np.array(tup[len(Race):2*len(Race)], dtype=int)
+    r_counts = tuple(eth_0 + eth_1)
+    eth = (sum(eth_1),)
+    if use_age:
+        age = (sum(tup[2*len(Race):3*len(Race)]),)
+    else:
+        age = ()
+    return r_counts + eth + age
+
+def to_sol_2(tup, use_age):
+    eth_0 = np.array(tup[:len(Race)], dtype=int)
+    eth_1 = np.array(tup[len(Race):2*len(Race)], dtype=int)
+    r_counts = tuple(eth_0 + eth_1)
+    eth = (sum(eth_1),)
+    if use_age:
+        age = (tup[2*len(Race)],)
+    else:
+        age = ()
+    return r_counts + eth + age
+
+def to_sol_3(tup, use_age):
+    return tup
+
+def to_sol(sol, func, use_age):
+    c = Counter()
+    for seq, prob in sol.items():
+        c[tuple(func(hh, use_age) for hh in seq)] += prob
+    return normalize(c)
+
+def solve(row, dist, level=1):
+    reduce_funcs = {2: reduce_2, 3: reduce_3}
+    sol_funcs = {1: to_sol_1, 2: to_sol_2, 3: to_sol_3}
+    SOLVER_RESULTS.level = level
+    if level > max(reduce_funcs.keys()):
+        SOLVER_RESULTS.status = SolverResults.UNSOLVED
+        return {}
+    solve_dist = dist
+    use_age = has_valid_age_data(row)
+    SOLVER_RESULTS.use_age = use_age
+    counts = encode_row(row)
+    if get_num_hhs(row) == 1 and use_age:
+        SOLVER_RESULTS.status = SolverResults.OK
+        return {(to_sol_1(counts, use_age),): 1.0}
+    if level > 1:
+        solve_dist = reduce_dist(dist, reduce_funcs[level], use_age)
+        counts = reduce_funcs[level](counts, use_age)
+    print(counts)
+    # print(len(counts))
+    sol = ip_solve(counts, solve_dist, num_solutions=SOLVER_PARAMS.num_sols)
+    if len(sol) == 0:
+        return solve(row, dist, level + 1)
+    if len(sol) == SOLVER_PARAMS.num_sols:
+        SOLVER_RESULTS.status = SolverResults.INCOMPLETE
+    else:
+        SOLVER_RESULTS.status = SolverResults.OK
+    # print(sol)
+    sol = recompute_probs(sol, solve_dist)
+    return to_sol(sol, sol_funcs[level], use_age)
+    # hhs = row_to_hhs(row)
+    # if len(hhs) == 0:
+        # # TODO: fallback
+        # return
+    # elif sum(hhs.values()) == 1 and use_age:-1
+        # SOLVER_RESULTS.status = SolverResults.OK
+        # # Need to wrap in 2 tuples
+        # # Outer one is a list of solutions
+        # # Inner is the list of households within that solution
+        # return {(get_race_counts(row) + get_eth_count(row) + (get_over_18_total(row),),): 1.0}
+
+def solve_old(row, all_dists, fallback_dist):
     use_age = has_valid_age_data(row)
     SOLVER_RESULTS.level = 1
     SOLVER_RESULTS.use_age = use_age

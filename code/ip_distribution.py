@@ -47,6 +47,39 @@ def ip_solve(counts, dist, num_solutions=50):
         sols.append(current_sol)
     return sols
 
+def ip_solve_eval(counts, dist, num_solutions=50):
+    ordering = get_ordering(dist)
+    constraint_mat = np.array(ordering).T
+    # print(constraint_mat)
+
+    m = gp.Model('IP solver')
+    m.Params.LogToConsole = 0
+    m.Params.PoolSearchMode = 2
+    m.Params.PoolSolutions = num_solutions
+    x = m.addMVar(len(ordering), vtype=GRB.INTEGER, lb=0)
+    nl_probs = np.array([-log(dist[i]) for i in ordering])
+    m.setObjective(nl_probs @ x, GRB.MINIMIZE)
+    m.addConstr(constraint_mat @ x == np.array(counts))
+    m.optimize()
+    nSolutions = m.SolCount
+    print('Number of solutions found: ' + str(nSolutions))
+    sols = []
+    if nSolutions == 0:
+        return sols
+    # print(m.ObjVal)
+    # print(m.PoolObjBound)
+    for sol in range(nSolutions):
+        m.setParam(GRB.Param.SolutionNumber, sol)
+        # print(m.PoolObjVal)
+        values = m.Xn
+        current_sol = []
+        for v, h in zip(values, ordering):
+            if v > 0:
+                current_sol += [h] * round(v)
+        current_sol = tuple(current_sol)
+        sols.append(current_sol)
+    return sols
+
 if __name__ == '__main__':
     dist = {
             (1, 0, 1): 1,

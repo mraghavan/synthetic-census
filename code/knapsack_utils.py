@@ -43,3 +43,6 @@ def make_one_hot(i, n):
     l = [0] * n
     l[i] = 1
     return tuple(l)
+
+def make_one_hot_np(i, n):
+    return np.array(make_one_hot(i, n), dtype=int)
