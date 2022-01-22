@@ -49,8 +49,6 @@ if __name__ == '__main__':
             print(ind, SOLVER_RESULTS.status, file=sys.stderr)
             errors.append(ind)
         print('SOLVER LEVEL', SOLVER_RESULTS.level, 'USED AGE', SOLVER_RESULTS.use_age, 'STATUS', SOLVER_RESULTS.status)
-        if SOLVER_RESULTS.level > 2:
-            break
         if len(sol) > 0:
             if WRITE:
                 with open(id_file, 'wb') as f:
