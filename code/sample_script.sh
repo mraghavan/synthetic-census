@@ -2,7 +2,7 @@
 #SBATCH -c 1                # Number of cores (-c)
 #SBATCH -t 0-1:00          # Runtime in D-HH:MM, minimum of 10 minutes
 #SBATCH -p serial_requeue   # Partition to submit to
-#SBATCH --mem=1000           # Memory pool for all cores (see also --mem-per-cpu)
+#SBATCH --mem=50000           # Memory pool for all cores (see also --mem-per-cpu)
 #SBATCH -o out_files/samp.out  # File to which STDOUT will be written, %j inserts jobid
 #SBATCH -e out_files/samp.err  # File to which STDERR will be written, %j inserts jobid
 #SBATCH --mail-type=END
