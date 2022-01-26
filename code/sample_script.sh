@@ -7,4 +7,4 @@
 #SBATCH -e out_files/samp.err  # File to which STDERR will be written, %j inserts jobid
 #SBATCH --mail-type=END
 module load python/3.8.5-fasrc01
-python3 sample_from_dist.py
+python3 sample_from_dist.py $1
