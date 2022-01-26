@@ -104,9 +104,8 @@ if __name__ == '__main__':
         task_name = ''
     df = pd.read_csv(get_block_out_file())
     print(df.head())
-    out_df = pd.DataFrame(columns=OUTPUT_COLS)
-    print(out_df.head())
     sample, accs, errors = load_sample_and_accs(task_name)
+    df_dict = {col: [] for col in OUTPUT_COLS}
     for ind, row in df.iterrows():
         if row['identifier'] in errors:
             print('Error index', ind)
@@ -117,17 +116,20 @@ if __name__ == '__main__':
             continue
         r_list = [row[x] for x in df.columns if x in CARRYOVER]
         try:
-            block_df = pd.DataFrame((r_list + [sum(b[:-2])] + list(b) + [i] + list(accs[row['identifier']]) for i, b in enumerate(breakdown)), columns=out_df.columns)
+            for i,b in enumerate(breakdown):
+                cur_row = r_list + [sum(b[:-2])] + list(b) + [i] + list(accs[row['identifier']])
+                for i, col in enumerate(OUTPUT_COLS):
+                    df_dict[col].append(cur_row[i])
         except Exception as e:
             print('Error:', ind)
             print(breakdown)
             print(e)
             continue
-        out_df = pd.concat([out_df, block_df], ignore_index=True)
+    out_df = pd.DataFrame.from_dict(df_dict)[OUTPUT_COLS]
     out_df.rename(columns=SHORT_RN, inplace=True)
     make_identifier_non_unique(out_df)
-    assert len(out_df['identifier'].unique()) == len(df['identifier'].unique())
     print(out_df.head())
+    assert len(out_df['identifier'].unique()) == len(df['identifier'].unique())
     with open(get_synthetic_out_file(task_name), 'w') as f:
         print('Writing to', get_synthetic_out_file(task_name))
         out_df.to_csv(f, index=False)
