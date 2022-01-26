@@ -14,8 +14,6 @@ if __name__ == '__main__':
     if os.path.exists(out):
         for fname in os.listdir(out):
             if re.match('census.' + job_id + r'[0-9]+.out', fname):
-                # print(fname)
                 os.remove(out + fname)
             elif re.match('census.' + job_id + r'[0-9]+.err', fname):
-                # print(fname)
                 os.remove(out + fname)
