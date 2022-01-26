@@ -128,6 +128,6 @@ if __name__ == '__main__':
     make_identifier_non_unique(out_df)
     assert len(out_df['identifier'].unique()) == len(df['identifier'].unique())
     print(out_df.head())
-    with open(get_synthetic_out_file(), 'w') as f:
-        print('Writing to', get_synthetic_out_file())
+    with open(get_synthetic_out_file(task_name), 'w') as f:
+        print('Writing to', get_synthetic_out_file(task_name))
         out_df.to_csv(f, index=False)

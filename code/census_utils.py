@@ -82,8 +82,8 @@ def get_block_file():
 def get_block_out_file():
     return BLOCK_OUTPUT_FILE
 
-def get_synthetic_out_file():
-    return get_dist_dir() + 'synthetic.csv'
+def get_synthetic_out_file(name=''):
+    return get_dist_dir() + name + 'synthetic.csv'
 
 
 # Sample codes [H9S-H9Y]
