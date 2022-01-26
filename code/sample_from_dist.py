@@ -79,17 +79,7 @@ def load_sample_and_accs():
             with open(d + fname, 'rb') as f:
                 result_list = pickle.load(f)
                 for results in result_list:
-                    keys, probs = zip(*results['sol'].items())
-                    keys = list(keys)
-                    if len(keys) > 1:
-                        try:
-                            breakdown = keys[np.random.choice(range(len(keys)), p=probs)]
-                        except:
-                            print('Error', results['id'])
-                            errors.append(int(results['id']))
-                            continue
-                    else:
-                        breakdown = keys[0]
+                    breakdown = results['sol']
                     # Add age if missing
                     if len(breakdown[0]) == RECORD_LENGTH - 1:
                         breakdown = add_age(breakdown, dist)
@@ -133,4 +123,5 @@ if __name__ == '__main__':
     make_identifier_non_unique(out_df)
     print(out_df.head())
     with open(get_synthetic_out_file(), 'w') as f:
+        print('Writing to', get_synthetic_out_file())
         out_df.to_csv(f, index=False)

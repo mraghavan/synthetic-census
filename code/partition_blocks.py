@@ -11,6 +11,14 @@ import gc
 def read_block_data():
     return pd.read_csv(get_block_out_file())
 
+def sample_from_sol(sol):
+    keys, probs = zip(*sol.items())
+    keys = list(keys)
+    if len(keys) > 1:
+        return keys[np.random.choice(range(len(keys)), p=probs)]
+    else:
+        return keys[0]
+
 if __name__ == '__main__':
     if len(sys.argv) >= 3:
         task = int(sys.argv[1])
@@ -50,6 +58,7 @@ if __name__ == '__main__':
             # continue
         sol = solve(row, hh_dist)
         print(len(sol), 'unique solutions')
+        chosen = sample_from_sol(sol)
         if SOLVER_RESULTS.status == SolverResults.UNSOLVED:
             print(ind, SOLVER_RESULTS.status, file=sys.stderr)
             errors.append(ind)
@@ -58,7 +67,7 @@ if __name__ == '__main__':
             if WRITE:
                 output.append({
                         'id': identifier,
-                        'sol': sol,
+                        'sol': chosen,
                         'level': SOLVER_RESULTS.level,
                         'complete': SOLVER_RESULTS.status == SolverResults.OK,
                         'age': SOLVER_RESULTS.use_age,
