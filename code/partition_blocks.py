@@ -44,7 +44,6 @@ if __name__ == '__main__':
     print(len(df), 'blocks to process')
     print(df.head())
     hh_dist = encode_hh_dist(read_microdata(get_micro_file()))
-    # print(hh_dist.most_common(10))
     errors = []
     output = []
     for ind, row in df.iterrows():
@@ -52,10 +51,6 @@ if __name__ == '__main__':
         print('index', ind)
         # print('Current memory usage', psutil.Process().memory_info().rss / (1024 * 1024), 'MB')
         identifier = str(row['identifier'])
-        # id_file = get_dist_dir() + identifier + '.pkl'
-        # if os.path.exists(id_file):
-            # print(id_file, 'already exists')
-            # continue
         sol = solve(row, hh_dist)
         print(len(sol), 'unique solutions')
         chosen = sample_from_sol(sol)
@@ -72,15 +67,6 @@ if __name__ == '__main__':
                         'complete': SOLVER_RESULTS.status == SolverResults.OK,
                         'age': SOLVER_RESULTS.use_age,
                         })
-                # with open(id_file, 'wb') as f:
-                    # pickle.dump({
-                        # 'id': identifier,
-                        # 'sol': sol,
-                        # 'level': SOLVER_RESULTS.level,
-                        # 'complete': SOLVER_RESULTS.status == SolverResults.OK,
-                        # 'age': SOLVER_RESULTS.use_age,
-                        # },
-                        # f)
         print('errors', errors, file=sys.stderr)
     if WRITE:
         print('Writing to', out_file)
