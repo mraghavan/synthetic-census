@@ -121,6 +121,7 @@ if __name__ == '__main__':
         out_df = pd.concat([out_df, block_df], ignore_index=True)
     out_df.rename(columns=SHORT_RN, inplace=True)
     make_identifier_non_unique(out_df)
+    assert len(out_df['identifier'].unique()) == len(df['identifier'].unique())
     print(out_df.head())
     with open(get_synthetic_out_file(), 'w') as f:
         print('Writing to', get_synthetic_out_file())
