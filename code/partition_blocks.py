@@ -26,7 +26,11 @@ if __name__ == '__main__':
     else:
         task = 1
         num_tasks = 1
-    out_file = get_dist_dir() + '%d_%d.pkl' % (task, num_tasks)
+    if len(sys.argv) >= 4:
+        task_name = sys.argv[3] + '_'
+    else:
+        task_name = ''
+    out_file = get_dist_dir() + task_name + '%d_%d.pkl' % (task, num_tasks)
     if os.path.exists(out_file):
         print(out_file, 'already exists')
         sys.exit(0)

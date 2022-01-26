@@ -6,6 +6,7 @@ import pickle
 import numpy as np
 from collections import Counter
 from knapsack_utils import normalize
+import sys
 
 POP_COLS = {
         'H7X002',
@@ -66,7 +67,7 @@ def process_dist(dist):
         new_dist[tup.race_counts + (tup.eth_count, tup.n_over_18)] += prob
     return normalize(new_dist)
 
-def load_sample_and_accs():
+def load_sample_and_accs(task_name):
     dist = read_microdata(get_micro_file())
     dist = process_dist(dist)
     d = get_dist_dir()
@@ -74,7 +75,7 @@ def load_sample_and_accs():
     accs = {}
     errors = []
     for fname in os.listdir(d):
-        if re.match('[0-9]+_[0-9]+.pkl', fname):
+        if re.match(task_name + '[0-9]+_[0-9]+.pkl', fname):
             print('Reading from', d+fname)
             with open(d + fname, 'rb') as f:
                 result_list = pickle.load(f)
@@ -97,11 +98,15 @@ def add_age(hh_list, dist):
     return tuple(sorted(out_list))
 
 if __name__ == '__main__':
+    if len(sys.argv) >= 2:
+        task_name = sys.argv[1] + '_'
+    else:
+        task_name = ''
     df = pd.read_csv(get_block_out_file())
     print(df.head())
     out_df = pd.DataFrame(columns=OUTPUT_COLS)
     print(out_df.head())
-    sample, accs, errors = load_sample_and_accs()
+    sample, accs, errors = load_sample_and_accs(task_name)
     for ind, row in df.iterrows():
         if row['identifier'] in errors:
             print('Error index', ind)
