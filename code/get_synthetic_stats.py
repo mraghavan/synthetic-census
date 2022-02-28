@@ -3,6 +3,8 @@ from knapsack_utils import *
 import pandas as pd
 from build_micro_dist import read_microdata
 from collections import Counter
+from guided_solver import to_sol_1
+import sys
 
 NON_BLOCK_COLS_L = [
         'TOTAL',
@@ -13,6 +15,7 @@ NON_BLOCK_COLS_L = [
         'H_PI',
         'OTH',
         'TWO_OR_MORE',
+        'NUM_HISP',
         '18_PLUS',
         'HH_NUM',
         ]
@@ -32,8 +35,8 @@ def tvd(d1, d2):
         diff += curr_diff
     return diff/2
 
-def load_synthetic():
-    return pd.read_csv(get_synthetic_out_file())
+def load_synthetic(name=''):
+    return pd.read_csv(get_synthetic_out_file(name))
 
 def get_block_df(df):
     new_cols = [col for col in df.columns if col not in NON_BLOCK_COLS]
@@ -41,18 +44,30 @@ def get_block_df(df):
     block_df = df.groupby('identifier').first().reset_index()
     return block_df
 
+def process_dist(dist):
+    new_dist = {}
+    for k, v in dist.items():
+        new_dist[k.race_counts + (k.eth_count,) + (k.n_over_18,)] = v
+    return new_dist
+
 def test_representativeness(df):
-    _, fallback_dist = read_microdata(get_micro_file())
+    fallback_dist = process_dist(read_microdata(get_micro_file()))
     hh_dist = Counter()
     hh_df = df[HH_COLS]
     counts = hh_df.groupby(list(hh_df.columns)).size().reset_index(name='counts')
     for ind, row in counts.iterrows():
         hh_counts = tuple(row[HH_COLS].tolist())
-        hh_dist[hh_counts] = row[-1]
+        hh_dist[hh_counts] += row[-1]
+    print(Counter(normalize(hh_dist)).most_common(10))
+    print(Counter(fallback_dist).most_common(10))
     return tvd(hh_dist, fallback_dist)
 
 if __name__ == '__main__':
-    df = load_synthetic()
+    if len(sys.argv) >= 2:
+        task_name = sys.argv[1] + '_'
+    else:
+        task_name = ''
+    df = load_synthetic(task_name)
     # print(df.head())
     print('Number of households:', len(df))
     print('Total population:', sum(df['TOTAL']))

@@ -66,6 +66,7 @@ def reduce_dist(dist, func, use_age):
     return normalize(c)
 
 def reduce_2(tup, use_age):
+    # schema: (r X h for all r, h; n18+ (?); num HH)
     new_t = tup[:2*len(Race)]
     if use_age:
         new_t += (sum(tup[2*len(Race):3*len(Race)]),)
@@ -74,6 +75,7 @@ def reduce_2(tup, use_age):
     return new_t
 
 def reduce_3(tup, use_age):
+    # schema: (r for all r; h; n18+ (?))
     eth_0 = np.array(tup[:len(Race)], dtype=int)
     eth_1 = np.array(tup[len(Race):2*len(Race)], dtype=int)
     r_counts = tuple(eth_0 + eth_1)
@@ -115,20 +117,46 @@ def to_sol(sol, func, use_age):
         c[tuple(func(hh, use_age) for hh in seq)] += prob
     return normalize(c)
 
+def get_type(hh):
+    type_range = hh[3*len(Race)+1:-1]
+    the_type = None
+    for i, t in zip(type_range, TYPES):
+        if i == 1:
+            the_type = t
+            break
+    if sum(type_range) == 2:
+        the_type += (1,)
+    else:
+        the_type += (0,)
+    return the_type
+
+def sol_to_type_dist(sol):
+    # in edge cases, this may collapse solutions together
+    type_dist = {}
+    for seq in sol:
+        type_dist[tuple(to_sol_1(hh, True) for hh in seq)] = tuple(get_type(hh) for hh in seq)
+    return type_dist
+
 def solve(row, dist, level=1):
     reduce_funcs = {2: reduce_2, 3: reduce_3}
     sol_funcs = {1: to_sol_1, 2: to_sol_2, 3: to_sol_3}
     SOLVER_RESULTS.level = level
     if level > max(reduce_funcs.keys()):
         SOLVER_RESULTS.status = SolverResults.UNSOLVED
-        return {}
+        return {}, None
     solve_dist = dist
     use_age = has_valid_age_data(row)
     SOLVER_RESULTS.use_age = use_age
     counts = encode_row(row)
     if get_num_hhs(row) == 1 and use_age:
         SOLVER_RESULTS.status = SolverResults.OK
-        return {(to_sol_1(counts, use_age),): 1.0}
+        # sol = {(to_sol_1(counts, use_age),): 1.0}
+        sol = {(counts,): 1.0}
+        if level == 1 and use_age:
+            type_dist = sol_to_type_dist(sol)
+        else:
+            type_dist = None
+        return to_sol(sol, sol_funcs[level], use_age), type_dist
     if level > 1:
         solve_dist = reduce_dist(dist, reduce_funcs[level], use_age)
         counts = reduce_funcs[level](counts, use_age)
@@ -143,7 +171,11 @@ def solve(row, dist, level=1):
         SOLVER_RESULTS.status = SolverResults.OK
     # print(sol)
     sol = recompute_probs(sol, solve_dist)
-    return to_sol(sol, sol_funcs[level], use_age)
+    if level == 1 and use_age:
+        type_dist = sol_to_type_dist(sol)
+    else:
+        type_dist = None
+    return to_sol(sol, sol_funcs[level], use_age), type_dist
     # hhs = row_to_hhs(row)
     # if len(hhs) == 0:
         # # TODO: fallback

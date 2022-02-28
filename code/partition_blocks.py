@@ -55,9 +55,14 @@ if __name__ == '__main__':
         print('index', ind)
         # print('Current memory usage', psutil.Process().memory_info().rss / (1024 * 1024), 'MB')
         identifier = str(row['identifier'])
-        sol = solve(row, hh_dist)
+        sol, type_dist = solve(row, hh_dist)
         print(len(sol), 'unique solutions')
         chosen = sample_from_sol(sol)
+        if type_dist is not None:
+            chosen_types = type_dist[chosen]
+            print(chosen_types)
+        else:
+            chosen_types = None
         if SOLVER_RESULTS.status == SolverResults.UNSOLVED:
             print(ind, SOLVER_RESULTS.status, file=sys.stderr)
             errors.append(ind)
@@ -70,6 +75,7 @@ if __name__ == '__main__':
                         'level': SOLVER_RESULTS.level,
                         'complete': SOLVER_RESULTS.status == SolverResults.OK,
                         'age': SOLVER_RESULTS.use_age,
+                        'types': chosen_types,
                         })
         print('errors', errors, file=sys.stderr)
     if WRITE:
