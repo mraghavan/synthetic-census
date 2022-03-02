@@ -7,7 +7,17 @@ from collections import namedtuple
 
 def rh_to_str(rh):
     r, h = rh
-    return str(r).lstrip('Race.') + '_' + str(h)
+    return r_to_str(r) + '_' + str(h)
+
+def r_to_str(r):
+    return str(r).lstrip('Race.')
+
+def t_to_str(t):
+    r, f, s = t
+    if type(r) == Race:
+        return r_to_str(r) + '_' + str(f) + '_' + str(s)
+    else:
+        return 'H' + '_' + str(f) + '_' + str(s)
 
 HH_tup = namedtuple('HH_tup',
         [rh_to_str(rh) for rh in RACE_HIS_ENUM] + ['n_18', 'holder_race', 'holder_eth', 'is_family', 'size'])
@@ -22,12 +32,6 @@ class Household():
     @property
     def size(self):
         return len(self.people)
-
-    # @property
-    # def hh_type(self):
-        # assert len(self.people) >= self.n_under_18
-        # # Format: (holder race, is family, size (capped at 7))
-        # return (self.holder.race, self.is_family, min(self.size, 7))
 
     @property
     def rh_counts(self):

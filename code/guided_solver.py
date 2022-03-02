@@ -1,34 +1,12 @@
 from build_micro_dist import *
+from census_utils import Race
+from encoding import *
 from knapsack_utils import *
 import multiprocessing
 import time
 from ip_distribution import ip_solve
 from encoding import *
 from math import log
-
-def encode_hh_dist(dist):
-    new_dist = Counter()
-    for hh, prob in dist.items():
-        # Race X eth pairs
-        rh_counts = hh.rh_counts
-        age_race = tuple(hh.n_over_18 * make_one_hot_np(hh.holder.race.value-1, len(Race)))
-        age_eth = (hh.holder.eth * hh.n_over_18,)
-        type_encoding = make_one_hot_np(TYPE_INDEX[hh.race_type], len(TYPE_INDEX))
-        if hh.holder.eth == 1:
-            type_encoding += make_one_hot_np(TYPE_INDEX[hh.eth_type], len(TYPE_INDEX))
-        type_encoding = tuple(type_encoding)
-        num_hh = (1,)
-        new_dist[rh_counts + age_race + age_eth + type_encoding + num_hh] += prob
-    return new_dist
-
-def encode_row(row):
-    rh_counts = get_rh_counts(row)
-    age_race = get_over_18_counts(row)
-    age_eth = (get_age_eth(row),)
-    type_encoding = get_types(row)
-    num_hh = (get_num_hhs(row),)
-    print([(t, te) for te, t in zip(type_encoding, TYPES) if te > 0])
-    return rh_counts + age_race + age_eth + type_encoding + num_hh
 
 class SolverParams():
     def __init__(self, num_sols):
@@ -59,89 +37,29 @@ def recompute_probs(sol, dist):
         new_sol[seq] = sum(log(dist[hh]) for hh in seq) + log(perms_to_combs(seq))
     return exp_normalize(new_sol)
 
-def reduce_dist(dist, func, use_age):
+def reduce_dist(dist, level, use_age):
     c = Counter()
     for k, v in dist.items():
-        c[func(k, use_age)] += v
+        c[k.reduce(level, use_age)] += v
     return normalize(c)
 
-def reduce_2(tup, use_age):
-    # schema: (r X h for all r, h; n18+ (?); num HH)
-    new_t = tup[:2*len(Race)]
-    if use_age:
-        new_t += (sum(tup[2*len(Race):3*len(Race)]),)
-    # num HH
-    new_t += (tup[-1],)
-    return new_t
-
-def reduce_3(tup, use_age):
-    # schema: (r for all r; h; n18+ (?))
-    eth_0 = np.array(tup[:len(Race)], dtype=int)
-    eth_1 = np.array(tup[len(Race):2*len(Race)], dtype=int)
-    r_counts = tuple(eth_0 + eth_1)
-    eth = (sum(eth_1),)
-    if use_age:
-        age = (sum(tup[2*len(Race):3*len(Race)]),)
-    else:
-        age = ()
-    return r_counts + eth + age
-
-def to_sol_1(tup, use_age):
-    eth_0 = np.array(tup[:len(Race)], dtype=int)
-    eth_1 = np.array(tup[len(Race):2*len(Race)], dtype=int)
-    r_counts = tuple(eth_0 + eth_1)
-    eth = (sum(eth_1),)
-    if use_age:
-        age = (sum(tup[2*len(Race):3*len(Race)]),)
-    else:
-        age = ()
-    return r_counts + eth + age
-
-def to_sol_2(tup, use_age):
-    eth_0 = np.array(tup[:len(Race)], dtype=int)
-    eth_1 = np.array(tup[len(Race):2*len(Race)], dtype=int)
-    r_counts = tuple(eth_0 + eth_1)
-    eth = (sum(eth_1),)
-    if use_age:
-        age = (tup[2*len(Race)],)
-    else:
-        age = ()
-    return r_counts + eth + age
-
-def to_sol_3(tup, use_age):
-    return tup
-
-def to_sol(sol, func, use_age):
+def to_sol(sol):
     c = Counter()
     for seq, prob in sol.items():
-        c[tuple(func(hh, use_age) for hh in seq)] += prob
+        c[tuple(hh.to_sol() for hh in seq)] += prob
     return normalize(c)
 
-def get_type(hh):
-    type_range = hh[3*len(Race)+1:-1]
-    the_type = None
-    for i, t in zip(type_range, TYPES):
-        if i == 1:
-            the_type = t
-            break
-    if sum(type_range) == 2:
-        the_type += (1,)
-    else:
-        the_type += (0,)
-    return the_type
-
 def sol_to_type_dist(sol):
-    # in edge cases, this may collapse solutions together
+    # In edge cases, this may collapse solutions together
+    # Make sure to only call this for level == 1
     type_dist = {}
     for seq in sol:
-        type_dist[tuple(to_sol_1(hh, True) for hh in seq)] = tuple(get_type(hh) for hh in seq)
+        type_dist[tuple(hh.to_sol() for hh in seq)] = tuple(hh.get_type() for hh in seq)
     return type_dist
 
 def solve(row, dist, level=1):
-    reduce_funcs = {2: reduce_2, 3: reduce_3}
-    sol_funcs = {1: to_sol_1, 2: to_sol_2, 3: to_sol_3}
     SOLVER_RESULTS.level = level
-    if level > max(reduce_funcs.keys()):
+    if level > MAX_LEVEL:
         SOLVER_RESULTS.status = SolverResults.UNSOLVED
         return {}, None
     solve_dist = dist
@@ -150,18 +68,16 @@ def solve(row, dist, level=1):
     counts = encode_row(row)
     if get_num_hhs(row) == 1 and use_age:
         SOLVER_RESULTS.status = SolverResults.OK
-        # sol = {(to_sol_1(counts, use_age),): 1.0}
         sol = {(counts,): 1.0}
         if level == 1 and use_age:
             type_dist = sol_to_type_dist(sol)
         else:
             type_dist = None
-        return to_sol(sol, sol_funcs[level], use_age), type_dist
+        return to_sol(sol), type_dist
     if level > 1:
-        solve_dist = reduce_dist(dist, reduce_funcs[level], use_age)
-        counts = reduce_funcs[level](counts, use_age)
+        solve_dist = reduce_dist(dist, level, use_age)
+        counts = counts.reduce(level, use_age)
     print(counts)
-    # print(len(counts))
     sol = ip_solve(counts, solve_dist, num_solutions=SOLVER_PARAMS.num_sols)
     if len(sol) == 0:
         return solve(row, dist, level + 1)
@@ -169,23 +85,12 @@ def solve(row, dist, level=1):
         SOLVER_RESULTS.status = SolverResults.INCOMPLETE
     else:
         SOLVER_RESULTS.status = SolverResults.OK
-    # print(sol)
     sol = recompute_probs(sol, solve_dist)
     if level == 1 and use_age:
         type_dist = sol_to_type_dist(sol)
     else:
         type_dist = None
-    return to_sol(sol, sol_funcs[level], use_age), type_dist
-    # hhs = row_to_hhs(row)
-    # if len(hhs) == 0:
-        # # TODO: fallback
-        # return
-    # elif sum(hhs.values()) == 1 and use_age:-1
-        # SOLVER_RESULTS.status = SolverResults.OK
-        # # Need to wrap in 2 tuples
-        # # Outer one is a list of solutions
-        # # Inner is the list of households within that solution
-        # return {(get_race_counts(row) + get_eth_count(row) + (get_over_18_total(row),),): 1.0}
+    return to_sol(sol), type_dist
 
 def solve_old(row, all_dists, fallback_dist):
     use_age = has_valid_age_data(row)

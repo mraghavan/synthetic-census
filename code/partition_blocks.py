@@ -52,7 +52,7 @@ if __name__ == '__main__':
     output = []
     for ind, row in df.iterrows():
         print()
-        print('index', ind)
+        print('index', ind, 'id', row['identifier'])
         # print('Current memory usage', psutil.Process().memory_info().rss / (1024 * 1024), 'MB')
         identifier = str(row['identifier'])
         sol, type_dist = solve(row, hh_dist)
