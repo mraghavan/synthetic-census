@@ -26,9 +26,6 @@ class SolverResults():
 
 SOLVER_RESULTS = SolverResults()
 
-def filter_dist(dist, counts):
-    return normalize({k: v for k, v in dist.items() if is_eligible(k, counts)})
-
 def recompute_probs(sol, dist):
     if len(sol) == 0:
         return {}
@@ -61,7 +58,7 @@ def solve(row, dist, level=1):
     SOLVER_RESULTS.level = level
     if level > MAX_LEVEL:
         SOLVER_RESULTS.status = SolverResults.UNSOLVED
-        return {}, None
+        return {}
     solve_dist = dist
     use_age = has_valid_age_data(row)
     SOLVER_RESULTS.use_age = use_age
@@ -73,7 +70,7 @@ def solve(row, dist, level=1):
             type_dist = sol_to_type_dist(sol)
         else:
             type_dist = None
-        return to_sol(sol), type_dist
+        return sol
     if level > 1:
         solve_dist = reduce_dist(dist, level, use_age)
         counts = counts.reduce(level, use_age)
@@ -90,7 +87,7 @@ def solve(row, dist, level=1):
         type_dist = sol_to_type_dist(sol)
     else:
         type_dist = None
-    return to_sol(sol), type_dist
+    return sol
 
 def solve_old(row, all_dists, fallback_dist):
     use_age = has_valid_age_data(row)

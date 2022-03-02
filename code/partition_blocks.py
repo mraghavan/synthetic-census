@@ -55,11 +55,11 @@ if __name__ == '__main__':
         print('index', ind, 'id', row['identifier'])
         # print('Current memory usage', psutil.Process().memory_info().rss / (1024 * 1024), 'MB')
         identifier = str(row['identifier'])
-        sol, type_dist = solve(row, hh_dist)
+        sol = solve(row, hh_dist)
         print(len(sol), 'unique solutions')
         chosen = sample_from_sol(sol)
-        if type_dist is not None:
-            chosen_types = type_dist[chosen]
+        if hasattr(chosen[0], 'get_type'):
+            chosen_types = tuple(c.get_type() for c in chosen)
             print(chosen_types)
         else:
             chosen_types = None
