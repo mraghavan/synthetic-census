@@ -1,11 +1,8 @@
 # Only going to evaluate ACCURACY = 1
 import numpy as np
 import pandas as pd
-from census_utils import *
-from knapsack_utils import *
 from build_micro_dist import read_microdata
 from guided_solver import *
-from encoding import *
 import matplotlib.pyplot as plt
 
 def ind_above(cum_probs, pct):
@@ -43,40 +40,6 @@ def evaluate_gurobi(row, dist):
     if len(hhs) == 0:
         return
     solution = solve(row, dist)
-    # # elif sum(hhs.values()) == 1 and use_age:
-        # # return
-    # hh_ordering = list(sorted(hhs.keys()))
-    # counts = get_race_counts(row)
-    # counts += get_over_18_counts(row)
-    # full_counts = counts + tuple(hhs[hh] for hh in hh_ordering)
-    # full_dist = {}
-    # n = len(hh_ordering)
-    # for i, hh in enumerate(hh_ordering):
-        # try:
-            # dist = all_dists[hh]
-        # except KeyError as e:
-            # print('Missing key', e)
-            # return
-        # i_tup = make_one_hot(i, n)
-        # for hh_counts, prob in dist.items():
-            # hh_encoded = hh_counts[:-1]
-            # over_18_tup = [0] * len(Race)
-            # over_18_tup[hh[0].value - 1] = hh_counts[-1]
-            # hh_encoded += tuple(over_18_tup)
-            # hh_encoded += i_tup
-            # full_dist[hh_encoded] = prob
-
-    # print('full_counts', full_counts)
-    # print('hhs', hhs)
-    # num_sols = 5000
-    # if row['H7X001'] > 100:
-        # return np.inf, np.inf, num_sols
-    # solution = ip_solve_eval(full_counts, full_dist, num_solutions=num_sols)
-    # if len(solution) == 0:
-        # return
-    # if len(solution) >= num_sols:
-        # print('Not all found')
-        # return np.inf, np.inf, len(solution)
     min_ind, area_between = plot_prob_over_solutions(solution)
     return min_ind, area_between, len(solution)
 
