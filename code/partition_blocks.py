@@ -58,6 +58,7 @@ if __name__ == '__main__':
         sol = solve(row, hh_dist)
         print(len(sol), 'unique solutions')
         chosen = sample_from_sol(sol)
+        chosen = tuple(hh.to_sol() for hh in chosen)
         if hasattr(chosen[0], 'get_type'):
             chosen_types = tuple(c.get_type() for c in chosen)
             print(chosen_types)
