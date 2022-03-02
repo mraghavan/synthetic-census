@@ -50,6 +50,7 @@ def solve(row, dist, level=1):
     if get_num_hhs(row) == 1 and use_age:
         SOLVER_RESULTS.status = SolverResults.OK
         sol = {(counts,): 1.0}
+        return sol
     if level > 1:
         solve_dist = reduce_dist(dist, level, use_age)
         counts = counts.reduce(level, use_age)
