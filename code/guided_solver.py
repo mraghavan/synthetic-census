@@ -2,8 +2,6 @@ from build_micro_dist import *
 from census_utils import Race
 from encoding import *
 from knapsack_utils import *
-import multiprocessing
-import time
 from ip_distribution import ip_solve
 from encoding import *
 from math import log
