@@ -95,7 +95,3 @@ def decode_solution(solution, decoder):
         simp_hhs = tuple(decoder(coded) for coded in hhs)
         simplified[simp_hhs] += prob
     return simplified
-
-if __name__ == '__main__':
-    dist = read_microdata(get_micro_file())
-    print(len(dist))
