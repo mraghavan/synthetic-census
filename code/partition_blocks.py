@@ -6,7 +6,11 @@ from build_micro_dist import read_microdata
 import pickle
 import sys
 import psutil
-import gc
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('task', nargs='?', default=1, type=int)
+parser.add_argument('num_tasks', nargs='?', default=1, type=int)
+parser.add_argument('task_name', nargs='?', default='', type=str)
 
 def read_block_data():
     return pd.read_csv(get_block_out_file())
@@ -20,14 +24,11 @@ def sample_from_sol(sol):
         return keys[0]
 
 if __name__ == '__main__':
-    if len(sys.argv) >= 3:
-        task = int(sys.argv[1])
-        num_tasks = int(sys.argv[2])
-    else:
-        task = 1
-        num_tasks = 1
-    if len(sys.argv) >= 4:
-        task_name = sys.argv[3] + '_'
+    args = parser.parse_args()
+    task = args.task
+    num_tasks = args.num_tasks
+    if args.task_name != '':
+        task_name = args.task_name + '_'
     else:
         task_name = ''
     out_file = get_dist_dir() + task_name + '%d_%d.pkl' % (task, num_tasks)
