@@ -82,6 +82,15 @@ def get_block_file():
 def get_block_out_file():
     return BLOCK_OUTPUT_FILE
 
+def get_swapped_file():
+    return SWAPPED_FILE
+
+def get_shape_file():
+    return SHAPE_FILE
+
+def get_grp_shape_file():
+    return GROUP_SHAPE_FILE
+
 def get_synthetic_out_file(name=''):
     return get_dist_dir() + name + 'synthetic.csv'
 
@@ -199,6 +208,9 @@ def has_valid_age_data(row):
     elif sum(get_over_18_counts(row)) != get_over_18_total(row):
         return False
     return True
+
+def num_digits(num):
+    return len(str(num))
 
 if __name__ == '__main__':
     print(RACE_HIS_ENUM)

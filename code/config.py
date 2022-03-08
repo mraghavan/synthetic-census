@@ -10,6 +10,9 @@ MICRO_FILE = DATA_DIR + STATE.lower() + '.2010.pums.01.txt'
 BLOCK_FILE = DATA_DIR + 'block_data.csv'
 BLOCK_OUTPUT_FILE = DATA_DIR + 'block_data_cleaned.csv'
 OUTPUT_DIR = os.path.expandvars(params['output']) + STATE + '/'
+SWAPPED_FILE = OUTPUT_DIR + 'swapped.csv'
+SHAPE_FILE = DATA_DIR + STATE + '_block_2010.shp'
+GROUP_SHAPE_FILE = DATA_DIR + STATE + '_blck_grp_2010.shp'
 NUM_SOLS = params['num_sols']
 WRITE = params['write'] == 1
 
