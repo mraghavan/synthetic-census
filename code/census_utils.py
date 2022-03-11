@@ -85,11 +85,18 @@ def get_block_out_file():
 def get_swapped_file():
     return SWAPPED_FILE
 
-def get_shape_file():
-    return SHAPE_FILE
+def get_shape_file(area):
+    shape_dict = {
+            'BLOCK': SHAPE_FILE,
+            'BLOCK_GROUP': GROUP_SHAPE_FILE,
+            'COUNTY': COUNTY_SHAPE_FILE,
+            'TRACT': TRACT_SHAPE_FILE,
+            'UP_LEG': UP_LEG_SHAPE_FILE,
+            'LOW_LEG': LOW_LEG_SHAPE_FILE,
+            }
+    return shape_dict[area]
 
-def get_grp_shape_file():
-    return GROUP_SHAPE_FILE
+get_shape_file.AREAS = ['BLOCK', 'BLOCK_GROUP', 'COUNTY', 'TRACT', 'UP_LEG', 'LOW_LEG']
 
 def get_synthetic_out_file(name=''):
     return get_dist_dir() + name + 'synthetic.csv'

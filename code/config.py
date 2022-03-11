@@ -11,10 +11,16 @@ BLOCK_FILE = DATA_DIR + 'block_data.csv'
 BLOCK_OUTPUT_FILE = DATA_DIR + 'block_data_cleaned.csv'
 OUTPUT_DIR = os.path.expandvars(params['output']) + STATE + '/'
 SWAPPED_FILE = OUTPUT_DIR + 'swapped.csv'
-SHAPE_FILE = DATA_DIR + STATE + '_block_2010.shp'
-GROUP_SHAPE_FILE = DATA_DIR + STATE + '_blck_grp_2010.shp'
+SHAPE_FILE = DATA_DIR + 'shapefiles/' + STATE + '_block_2010.shp'
+GROUP_SHAPE_FILE = DATA_DIR + 'shapefiles/' + STATE + '_blck_grp_2010.shp'
 NUM_SOLS = params['num_sols']
 WRITE = params['write'] == 1
+
+US_DIR = os.path.expandvars(params['data']) + 'US/shapefiles/'
+UP_LEG_SHAPE_FILE = US_DIR + 'US_stleg_up_2010.shp'
+LOW_LEG_SHAPE_FILE = US_DIR + 'US_stleg_lo_2010.shp'
+COUNTY_SHAPE_FILE = US_DIR + 'US_county_2010.shp'
+TRACT_SHAPE_FILE = US_DIR + 'US_tract_2010.shp'
 
 flag = True
 
