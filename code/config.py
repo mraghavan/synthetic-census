@@ -21,6 +21,7 @@ UP_LEG_SHAPE_FILE = US_DIR + 'US_stleg_up_2010.shp'
 LOW_LEG_SHAPE_FILE = US_DIR + 'US_stleg_lo_2010.shp'
 COUNTY_SHAPE_FILE = US_DIR + 'US_county_2010.shp'
 TRACT_SHAPE_FILE = US_DIR + 'US_tract_2010.shp'
+CONG_SHAPE_FILE = US_DIR + 'US_cd111th_2010.shp'
 
 flag = True
 

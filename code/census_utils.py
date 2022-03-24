@@ -93,10 +93,11 @@ def get_shape_file(area):
             'TRACT': TRACT_SHAPE_FILE,
             'UP_LEG': UP_LEG_SHAPE_FILE,
             'LOW_LEG': LOW_LEG_SHAPE_FILE,
+            'CONG': CONG_SHAPE_FILE,
             }
     return shape_dict[area]
 
-get_shape_file.AREAS = ['BLOCK', 'BLOCK_GROUP', 'COUNTY', 'TRACT', 'UP_LEG', 'LOW_LEG']
+get_shape_file.AREAS = ['BLOCK', 'BLOCK_GROUP', 'COUNTY', 'TRACT', 'UP_LEG', 'LOW_LEG', 'CONG']
 
 def get_synthetic_out_file(name=''):
     return get_dist_dir() + name + 'synthetic.csv'
