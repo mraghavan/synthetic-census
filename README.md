@@ -67,7 +67,7 @@ This will use a map-reduce-style approach to generate a single dataset, which wi
 Make sure the directory `code/out_files` exists before running.
 
 ### Map
-The map phase is done by `slurm runscript.sh`, which should look something like
+The map phase is done by `sbatch runscript.sh`, which should look something like
 ```
 #!/bin/bash
 #SBATCH -c 4                # Number of cores (-c)
@@ -91,7 +91,7 @@ To prevent too many from running at the same time, use `#SBATCH --array=1-{num}%
 Gurobi can use multiple cores, which is why I've set the number of cores to 4. I haven't experimented with increasing/decreasing this.
 
 ### Reduce
-The reduce phase is done by `slurm sample_script.sh [job_id]`, where `[job_id]` should be the id of the map phase. `sample_script.sh` should look like
+The reduce phase is done by `sbatch sample_script.sh [job_id]`, where `[job_id]` should be the id of the map phase. `sample_script.sh` should look like
 ```
 #!/bin/bash
 #SBATCH -c 1                # Number of cores (-c)
