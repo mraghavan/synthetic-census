@@ -6,6 +6,7 @@ from math import sqrt
 from scipy.spatial import KDTree
 import numpy as np
 from codetiming import Timer
+import json
 
 @Timer('Loading data')
 def load_data():
@@ -73,10 +74,13 @@ def find_k_closest(row, df, k):
         dists, candidates = tree.query((lat, lon), num_to_query)
 #         print(candidates)
         first_non_zero = 0
-        while dists[first_non_zero] == 0:
+        while first_non_zero < len(dists) and dists[first_non_zero] == 0:
             first_non_zero += 1
         dists = dists[first_non_zero:]
         candidates = candidates[first_non_zero:]
+        if len(dists) < k:
+            num_to_query *= 2
+            continue
 #         print(dists)
 #         print(candidates)
         cand_inds = [inds[c] for c in candidates]
@@ -92,18 +96,8 @@ def find_k_closest(row, df, k):
     cand_rows['distance'] = cand_rows.apply(block_distance, axis=1)
     return cand_rows
 
-
-if __name__ == '__main__':
-    print('Loading data...')
-    df = load_data()
-    num_rows = len(df)
-    print(num_rows, 'rows')
-    dist_u = {
-        4: .05,
-        3: .15,
-        2: .3,
-        1: .5
-    }
+def flag_risk(df):
+    dist_u = params['risk_dist']
     dist_n = {k: v*num_rows for k, v in dist_u.items()}
     flagging = ['W', 'B', 'AI_AN', 'AS', 'H_PI', 'OTH', 'TWO_OR_MORE', 'NUM_HISP']
     counts = df[flagging].groupby(flagging).size().reset_index()
@@ -120,62 +114,31 @@ if __name__ == '__main__':
     if len(l) < num_rows:
         l += [1] * (num_rows - len(l))
     merged['U'] = l
-    merged['prob'] = merged['U'].replace({4: 1, 3: .6, 2: .3, 1: .1})
-    del merged['identifier']
-    print('Adding identifier...')
-    make_identifier_synth(merged)
+    merged['prob'] = merged['U'].replace(params['swap_probs'])
+    return merged
 
-    merged['hh_str'] = merged['HH_NUM'].astype(str).str.zfill(4)
-    merged['household.id'] = merged[['id', 'hh_str']].astype(str).agg('-'.join, axis=1)
-    del merged['hh_str']
-
-    print('Loading shape data...')
-    block_geo = load_shape_data('BLOCK')
-
-
-    print('Adding geo identifier...')
-    make_identifier_synth_geo(block_geo)
-
-    merged = merged.merge(
-        block_geo[['INTPTLAT10', 'INTPTLON10', 'id']],
-        on='id',
-        how='left',
-        validate='many_to_one',
-    )
-
-
-    merged['INTPTLAT10'] = pd.to_numeric(merged['INTPTLAT10'])
-    merged['INTPTLON10'] = pd.to_numeric(merged['INTPTLON10'])
-
-    all_num_age_pairs = set(zip(merged['TOTAL'], merged['18_PLUS']))
-
-    print('Building trees...')
-    trees, indices = build_trees_and_inds(merged)
-
-
-
+def get_swap_partners(df):
     hh_1s = []
     hh_2s = []
     dists = []
-    merged['swapped'] = 0
-# cols = ['TOTAL', '18_PLUS', 'id']
-# cols_to_swap = flagging + ['household.id', 'prob', 'U', 'frequency']
-    num_matches = 5
-    s = .0093
+    df['swapped'] = 0
+    num_matches = params['num_matches']
+    s = params['swap_rate']
     print('Total number of swaps', int(s*num_rows)//2)
     print('Beginning swapping...')
     with Timer():
-        for i, row in merged.iterrows():
-            if i % 1000 == 0:
-                print(i, '/', int(s*num_rows)//2)
-            if merged['swapped'].sum() >= num_rows*s:
+        for i, row in df.iterrows():
+            j = df['swapped'].sum()
+            if j % 5000 == 0:
+                print(j, '/', int(s*num_rows))
+            if j >= num_rows*s:
                 break
-            if merged.loc[i, 'swapped'] == 1:
+            if df.loc[i, 'swapped'] == 1:
                 continue
             do_swap = random() < row['prob']
             if not do_swap:
                 continue
-            matches = find_k_closest(row, merged, num_matches)
+            matches = find_k_closest(row, df, num_matches)
             m = matches.sample()
             partner_index = m.index[0]
             m = m.reset_index().iloc[0]
@@ -184,26 +147,22 @@ if __name__ == '__main__':
             dists.extend([m['distance'], m['distance']])
             if i == partner_index:
                 print(i, partner_index)
-            if merged.loc[i, 'swapped'] == 1:
+            if df.loc[i, 'swapped'] == 1:
                 print(i)
-                print(merged.loc[i])
+                print(df.loc[i])
                 print(row)
-            if merged.loc[partner_index, 'swapped'] == 1:
+            if df.loc[partner_index, 'swapped'] == 1:
                 print(i, partner_index)
             assert i != partner_index
-            assert merged.loc[i, 'swapped'] == 0
-            assert merged.loc[partner_index, 'swapped'] == 0
-            merged.loc[[i, partner_index], 'swapped'] = 1
+            assert df.loc[i, 'swapped'] == 0
+            assert df.loc[partner_index, 'swapped'] == 0
+            df.loc[[i, partner_index], 'swapped'] = 1
     partners = pd.DataFrame({'hh_1': hh_1s, 'hh_2': hh_2s, 'distance': dists})
+    return partners
 
-
-    just_pairs = partners[['hh_1', 'hh_2']]
-    print(len(just_pairs), 'pairs')
-    print(merged['swapped'].sum(), 'total swapped')
-    assert len(just_pairs) == merged['swapped'].sum()
-
-    swapped_df = merged.merge(
-        just_pairs,
+def finish_swap(df, pairs):
+    swapped_df = df.merge(
+        pairs,
         left_on = 'household.id',
         right_on = 'hh_1',
         how = 'left',
@@ -220,7 +179,55 @@ if __name__ == '__main__':
     swapped_df.loc[swap_subset, 'household.id'] = swapped_df.loc[swap_subset, 'hh_2']
     swapped_df.rename({'id': 'blockid'}, inplace=True, axis=1)
     del swapped_df['hh_2']
+    return swapped_df
 
-# with open(get_swapped_file(), 'w') as f:
-        # swapped_df.to_csv(f)
+if __name__ == '__main__':
+    print('Loading data...')
+    df = load_data()
+    num_rows = len(df)
+    print(num_rows, 'rows')
+    params = None
+    with open('swapping_params.json') as f:
+        params = json.load(f)
+    params['risk_dist'] = {int(k): v for k, v in params['risk_dist'].items()}
+    params['swap_probs'] = {int(k): v for k, v in params['swap_probs'].items()}
+    merged = flag_risk(df)
+    del merged['identifier']
+    print('Adding identifier...')
+    make_identifier_synth(merged)
 
+    merged['hh_str'] = merged['HH_NUM'].astype(str).str.zfill(4)
+    merged['household.id'] = merged[['id', 'hh_str']].astype(str).agg('-'.join, axis=1)
+    del merged['hh_str']
+
+    print('Loading shape data...')
+    block_geo = load_shape_data('BLOCK')
+
+    print('Adding geo identifier...')
+    make_identifier_synth_geo(block_geo)
+
+    merged = merged.merge(
+        block_geo[['INTPTLAT10', 'INTPTLON10', 'id']],
+        on='id',
+        how='left',
+        validate='many_to_one',
+    )
+
+    merged['INTPTLAT10'] = pd.to_numeric(merged['INTPTLAT10'])
+    merged['INTPTLON10'] = pd.to_numeric(merged['INTPTLON10'])
+
+    all_num_age_pairs = set(zip(merged['TOTAL'], merged['18_PLUS']))
+
+    print('Building trees...')
+    trees, indices = build_trees_and_inds(merged)
+    partners = get_swap_partners(merged)
+
+    just_pairs = partners[['hh_1', 'hh_2']]
+    print(len(just_pairs), 'pairs')
+    print(merged['swapped'].sum(), 'total swapped')
+    assert len(just_pairs) == merged['swapped'].sum()
+
+    swapped_df = finish_swap(merged, just_pairs)
+    if WRITE:
+        with open(get_swapped_file(), 'w') as f:
+            swapped_df.to_csv(f)
