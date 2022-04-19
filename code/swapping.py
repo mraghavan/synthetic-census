@@ -118,6 +118,7 @@ def flag_risk(df):
     return merged
 
 def get_swap_partners(df):
+    # Only modification to df: changes the `swapped` column
     hh_1s = []
     hh_2s = []
     dists = []
@@ -161,6 +162,7 @@ def get_swap_partners(df):
     return partners
 
 def finish_swap(df, pairs):
+    # DOES NOT modify df
     swapped_df = df.merge(
         pairs,
         left_on = 'household.id',
@@ -220,6 +222,7 @@ if __name__ == '__main__':
 
     print('Building trees...')
     trees, indices = build_trees_and_inds(merged)
+    # In principle, we could loop from here to the end to produce multiple datasets
     partners = get_swap_partners(merged)
 
     just_pairs = partners[['hh_1', 'hh_2']]
