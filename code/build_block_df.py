@@ -37,8 +37,18 @@ def make_identifier(df):
     # Make sure identifiers are unique, otherwise need to add more columns to ID_COLS
     assert len(df) == len(df.identifier.unique())
 
+# def make_identifier_non_unique(df):
+    # df['identifier'] = reduce(operator.add, [df[col].astype(str) for col in ID_COLS])
+
 def make_identifier_non_unique(df):
-    df['identifier'] = reduce(operator.add, [df[col].astype(str) for col in ID_COLS])
+    id_lens = [3, 6, 4]
+    str_cols = [col + '_str' for col in ID_COLS]
+    for col, l, col_s in zip(ID_COLS, id_lens, str_cols):
+        assert max(num_digits(s) for s in df[col].unique()) <= l
+        df[col_s] = df[col].astype(str).str.zfill(l)
+    df['identifier'] = df[str_cols].astype(str).agg('-'.join, axis=1)
+    for col_s in str_cols:
+        del df[col_s]
 
 def get_clean_block_df():
     df = pd.read_csv(get_block_file())
