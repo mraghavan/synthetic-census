@@ -85,7 +85,7 @@ def load_sample_and_accs(task_name):
                     if len(breakdown[0]) == RECORD_LENGTH - 1:
                         breakdown = add_age(breakdown, dist)
                     sample[results['id']] = breakdown
-                    accs[int(results['id'])] = (results['level'], results['age'])
+                    accs[results['id']] = (results['level'], results['age'])
     return sample, accs, errors
 
 def add_age(hh_list, dist):
