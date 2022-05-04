@@ -7,5 +7,5 @@
 #SBATCH -e out_files/swap.%j.err  # File to which STDERR will be written, %j inserts jobid
 #SBATCH --mail-type=END
 module load Anaconda3/2020.11
-source activate mragh_test
+source activate geopandas
 conda run python3 swapping.py
