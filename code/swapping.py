@@ -12,15 +12,14 @@ import json
 def load_data():
     return pd.read_csv(get_synthetic_out_file())
 
+# TODO why is this order weird?
 @Timer()
-def make_identifier_synth(df):
-    ID_COLS = ['TRACTA', 'COUNTYA', 'BLOCKA']
-    id_lens = [6, 3, 4]
+def make_identifier_synth(df, ID_COLS=['TRACTA', 'COUNTYA', 'BLOCKA'], id_lens=[6, 3, 4], name='id'):
     str_cols = [col + '_str' for col in ID_COLS]
     for col, l, col_s in zip(ID_COLS, id_lens, str_cols):
         assert max(num_digits(s) for s in df[col].unique()) <= l
         df[col_s] = df[col].astype(str).str.zfill(l)
-    df['id'] = df[str_cols].astype(str).agg('-'.join, axis=1)
+    df[name] = df[str_cols].astype(str).agg('-'.join, axis=1)
     for col_s in str_cols:
         del df[col_s]
 
@@ -65,8 +64,6 @@ def find_k_closest(row, df, k):
     a = row['18_PLUS']
     tree = trees[(t, a)]
     inds = indices[(t, a)]
-    if len(inds) <= k:
-        return df[(df['TOTAL'] == t) & (df['18_PLUS'] == a)]
     lat = row['INTPTLAT10']
     lon = row['INTPTLON10']
     num_to_query = k+1
@@ -92,21 +89,27 @@ def find_k_closest(row, df, k):
             num_to_query *= 2
             continue
         return cand_rows.head(k)
-    cand_rows = df[(df['TOTAL'] == t) & (df['18_PLUS'] == a) & (df['swapped'] == 0) & (df['blockid'] != row['blockid'])].head(k).copy()
+    #TODO Make swaps go farther
+    cand_rows = df[(df['TOTAL'] == t) & (df['18_PLUS'] == a) & (df['swapped'] == 0) & (df['grpid'] != row['grpid'])].head(k).copy()
+    if len(cand_rows) == 0:
+        # Unique in the whole state
+        return None
+    cand_rows['other_lat'] = lat
+    cand_rows['other_lon'] = lon
     cand_rows['distance'] = cand_rows.apply(block_distance, axis=1)
     return cand_rows
 
 def flag_risk(df):
     dist_u = params['risk_dist']
     dist_n = {k: v*num_rows for k, v in dist_u.items()}
-    flagging = ['W', 'B', 'AI_AN', 'AS', 'H_PI', 'OTH', 'TWO_OR_MORE', 'NUM_HISP']
+    flagging = ['W', 'B', 'AI_AN', 'AS', 'H_PI', 'OTH', 'TWO_OR_MORE', 'NUM_HISP', 'COUNTYA', 'TRACTA']
     counts = df[flagging].groupby(flagging).size().reset_index()
     merged = df.merge(counts,
              how='left',
              on=flagging,
              validate='many_to_one',
     ).rename({0: 'frequency'}, axis=1)
-    merged.sort_values(by=['BLOCK_TOTAL', 'frequency'], axis=0, inplace=True)
+    merged.sort_values(by=['frequency', 'BLOCK_TOTAL'], axis=0, inplace=True)
     vec_n = [[i] * int(dist_n[i]) for i in (4, 3, 2, 1)]
     l = []
     for v in vec_n:
@@ -140,6 +143,8 @@ def get_swap_partners(df):
             if not do_swap:
                 continue
             matches = find_k_closest(row, df, num_matches)
+            if matches is None:
+                continue
             m = matches.sample()
             partner_index = m.index[0]
             m = m.reset_index().iloc[0]
@@ -197,6 +202,7 @@ if __name__ == '__main__':
     del merged['identifier']
     print('Adding identifier...')
     make_identifier_synth(merged)
+    make_identifier_synth(merged, ID_COLS=['TRACTA', 'COUNTYA', 'BLKGRPA'], id_lens=[6, 3, 4], name='grpid')
 
     merged['hh_str'] = merged['HH_NUM'].astype(str).str.zfill(4)
     merged['household.id'] = merged[['id', 'hh_str']].astype(str).agg('-'.join, axis=1)
