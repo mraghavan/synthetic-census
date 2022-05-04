@@ -232,4 +232,4 @@ if __name__ == '__main__':
     swapped_df = finish_swap(merged, just_pairs)
     if WRITE:
         with open(get_swapped_file(), 'w') as f:
-            swapped_df.to_csv(f)
+            swapped_df.to_csv(f, index=False)
