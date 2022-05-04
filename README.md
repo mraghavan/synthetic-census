@@ -155,5 +155,24 @@ The synthetic dataset has the following columns:
 
 `AGE_ACCURACY` is true if tables `P3` and `P16` agree on the total number of residents in the block, and false otherwise. In VT, this is true for ~98% of blocks.
 
+# Swapping
+
+To get swapped data, name the synthetic dataset `[output]/[state]/synthetic.csv`.
+Run `python3 swapping.py`, which will run swap the dataset and write the resulting dataset to `[output]/[state]/swapped.csv`.
+
+The swapping parameters (including the swap rate) can be found and edited in `swapping_params.json`.
+
+## Running on slurm
+To run on slurm, first create a `conda` environment with the following commands:
+```
+conda create --name geopandas
+source activate geopandas
+conda install geopandas
+```
+Then, run `sbatch swap_script.sh`.
+
+(Harvard's cluster seems to require `conda` because the standard `python3` won't allow the installation of `geopandas` for some reason.
+In the future, it may be worth re-trying to avoid the added hassle of `conda`.)
+
 # How it works
 To be written
