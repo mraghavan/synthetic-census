@@ -5,15 +5,12 @@ from random import random
 from math import sqrt
 from scipy.spatial import KDTree
 import numpy as np
-from codetiming import Timer
 import json
 
-@Timer('Loading data')
 def load_data():
     return pd.read_csv(get_synthetic_out_file())
 
 # TODO why is this order weird?
-@Timer()
 def make_identifier_synth(df, ID_COLS=['TRACTA', 'COUNTYA', 'BLOCKA'], id_lens=[6, 3, 4], name='id'):
     str_cols = [col + '_str' for col in ID_COLS]
     for col, l, col_s in zip(ID_COLS, id_lens, str_cols):
@@ -23,12 +20,10 @@ def make_identifier_synth(df, ID_COLS=['TRACTA', 'COUNTYA', 'BLOCKA'], id_lens=[
     for col_s in str_cols:
         del df[col_s]
 
-@Timer()
 def load_shape_data(area):
     block_map = gpd.read_file(get_shape_file(area))
     return block_map.to_crs("EPSG:3395")
 
-@Timer()
 def make_identifier_synth_geo(df):
     ID_COLS = ['TRACTCE10', 'COUNTYFP10', 'BLOCKCE10']
     id_lens = [6, 3, 4]
@@ -40,7 +35,6 @@ def make_identifier_synth_geo(df):
     for col_s in str_cols:
         del df[col_s]
 
-@Timer()
 def build_trees_and_inds(df):
     trees = {}
     indices = {}
@@ -130,39 +124,38 @@ def get_swap_partners(df):
     s = params['swap_rate']
     print('Total number of swaps', int(s*num_rows)//2)
     print('Beginning swapping...')
-    with Timer():
-        for i, row in df.iterrows():
-            j = df['swapped'].sum()
-            if j % 5000 == 0:
-                print(j, '/', int(s*num_rows))
-            if j >= num_rows*s:
-                break
-            if df.loc[i, 'swapped'] == 1:
-                continue
-            do_swap = random() < row['prob']
-            if not do_swap:
-                continue
-            matches = find_k_closest(row, df, num_matches)
-            if matches is None:
-                continue
-            m = matches.sample()
-            partner_index = m.index[0]
-            m = m.reset_index().iloc[0]
-            hh_1s.extend([row['household.id'], m['household.id']])
-            hh_2s.extend([m['household.id'], row['household.id']])
-            dists.extend([m['distance'], m['distance']])
-            if i == partner_index:
-                print(i, partner_index)
-            if df.loc[i, 'swapped'] == 1:
-                print(i)
-                print(df.loc[i])
-                print(row)
-            if df.loc[partner_index, 'swapped'] == 1:
-                print(i, partner_index)
-            assert i != partner_index
-            assert df.loc[i, 'swapped'] == 0
-            assert df.loc[partner_index, 'swapped'] == 0
-            df.loc[[i, partner_index], 'swapped'] = 1
+    for i, row in df.iterrows():
+        j = df['swapped'].sum()
+        if j % 5000 == 0:
+            print(j, '/', int(s*num_rows))
+        if j >= num_rows*s:
+            break
+        if df.loc[i, 'swapped'] == 1:
+            continue
+        do_swap = random() < row['prob']
+        if not do_swap:
+            continue
+        matches = find_k_closest(row, df, num_matches)
+        if matches is None:
+            continue
+        m = matches.sample()
+        partner_index = m.index[0]
+        m = m.reset_index().iloc[0]
+        hh_1s.extend([row['household.id'], m['household.id']])
+        hh_2s.extend([m['household.id'], row['household.id']])
+        dists.extend([m['distance'], m['distance']])
+        if i == partner_index:
+            print(i, partner_index)
+        if df.loc[i, 'swapped'] == 1:
+            print(i)
+            print(df.loc[i])
+            print(row)
+        if df.loc[partner_index, 'swapped'] == 1:
+            print(i, partner_index)
+        assert i != partner_index
+        assert df.loc[i, 'swapped'] == 0
+        assert df.loc[partner_index, 'swapped'] == 0
+        df.loc[[i, partner_index], 'swapped'] = 1
     partners = pd.DataFrame({'hh_1': hh_1s, 'hh_2': hh_2s, 'distance': dists})
     return partners
 
