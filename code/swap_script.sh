@@ -6,5 +6,6 @@
 #SBATCH -o out_files/swap.%j.out  # File to which STDOUT will be written, %j inserts jobid
 #SBATCH -e out_files/swap.%j.err  # File to which STDERR will be written, %j inserts jobid
 #SBATCH --mail-type=END
-module load python/3.8.5-fasrc01
-python3 swapping.py
+module load Anaconda3/2020.11
+source activate mragh_test
+conda run python3 swapping.py
