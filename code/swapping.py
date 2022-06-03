@@ -6,9 +6,10 @@ from math import sqrt
 from scipy.spatial import KDTree
 import numpy as np
 import json
+import sys
 
-def load_data():
-    return pd.read_csv(get_synthetic_out_file())
+def load_data(task_name):
+    return pd.read_csv(get_synthetic_out_file(task_name))
 
 # TODO why is this order weird?
 def make_identifier_synth(df, ID_COLS=['TRACTA', 'COUNTYA', 'BLOCKA'], id_lens=[6, 3, 4], name='id'):
@@ -182,8 +183,12 @@ def finish_swap(df, pairs):
     return swapped_df
 
 if __name__ == '__main__':
+    if len(sys.argv) >= 2:
+        task_name = sys.argv[1] + '_'
+    else:
+        task_name = ''
     print('Loading data...')
-    df = load_data()
+    df = load_data(task_name)
     num_rows = len(df)
     print(num_rows, 'rows')
     params = None
