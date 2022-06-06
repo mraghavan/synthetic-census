@@ -82,8 +82,8 @@ def get_block_file():
 def get_block_out_file():
     return BLOCK_OUTPUT_FILE
 
-def get_swapped_file():
-    return SWAPPED_FILE
+def get_swapped_file(task_name=''):
+    return get_dist_dir() + name + 'swapped.csv'
 
 def get_shape_file(area):
     shape_dict = {
