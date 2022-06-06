@@ -8,4 +8,4 @@
 #SBATCH --mail-type=END
 module load Anaconda3/2020.11
 source activate geopandas
-conda run python3 swapping.py
+conda run python3 swapping.py $1
