@@ -25,6 +25,7 @@ Create a file called `params.json` in the `code/` directory.
 The input data will need to be in `[data]/[state]`, and the output will be written to `output/state`.
 `num_sols` specifies the maximum number of soluions to be returned for a block.
 `write` controls whether output files will be written.
+Make sure you set `write` to 1 before you run.
 Here's a sample:
 ```
 {
@@ -60,6 +61,7 @@ This will create `.pkl` file in `[output]/[state]/`.
 To parallelize, run `python3 partition_blocks.py [i] [total]` for `i` in `1..total` on separate threads/machines (see below for `slurm` usage).
 If given a third argument [name], files will be named `[name]_[i]_[total].pkl`.
 Otherwise, they will be named `[i]_[total].pkl`
+To turn the `.pkl` files into a dataset, run `python3 sample_from_dist.py [name]`.
 
 ## Running on the RC cluster with `slurm`
 If using `slurm`, run `./generate_dataset.sh`.
@@ -158,7 +160,7 @@ The synthetic dataset has the following columns:
 # Swapping
 
 To get swapped data, name the synthetic dataset `[output]/[state]/synthetic.csv`.
-Run `python3 swapping.py`, which will run swap the dataset and write the resulting dataset to `[output]/[state]/swapped.csv`.
+Run `python3 swapping.py [name]`, which will run swap the dataset and write the resulting dataset to `[output]/[state]/[name]_swapped.csv`.
 
 The swapping parameters (including the swap rate) can be found and edited in `swapping_params.json`.
 
