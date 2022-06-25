@@ -159,7 +159,9 @@ The synthetic dataset has the following columns:
 
 # Swapping
 
-To get swapped data, name the synthetic dataset `[output]/[state]/synthetic.csv`.
+First, download the 2010 shapefiles for that state from [IPUMS](https://data2.nhgis.org/main) (more detailed instructions coming).
+
+To get swapped data, name the synthetic dataset `[output]/[state]/[name]_synthetic.csv`.
 Run `python3 swapping.py [name]`, which will run swap the dataset and write the resulting dataset to `[output]/[state]/[name]_swapped.csv`.
 
 The swapping parameters (including the swap rate) can be found and edited in `swapping_params.json`.
@@ -175,6 +177,14 @@ Then, run `sbatch swap_script.sh`.
 
 (Harvard's cluster seems to require `conda` because the standard `python3` won't allow the installation of `geopandas` for some reason.
 In the future, it may be worth re-trying to avoid the added hassle of `conda`.)
+
+# ToyDown
+
+This needs to be expanded.
+
+Basic instructions:
+- Run `python3 hh_to_person_microdata.py [name]`.
+- Run `python3 run_toydown.py [name] 1 1 1 equal` (or with other parameters).
 
 # How it works
 To be written
