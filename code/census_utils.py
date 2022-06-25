@@ -95,6 +95,12 @@ def get_swapped_file(task_name=''):
 def get_person_micro_file(task_name=''):
     return get_dist_dir() + task_name + 'person_micro.csv'
 
+def get_dp_tot_file(task_name):
+    return get_dist_dir() + task_name + 'tot_toydown.csv'
+
+def get_dp_vap_file(task_name):
+    return get_dist_dir() + task_name + 'vap_toydown.csv'
+
 def get_shape_file(area):
     shape_dict = {
             'BLOCK': SHAPE_FILE,

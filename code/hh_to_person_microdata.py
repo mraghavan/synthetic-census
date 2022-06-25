@@ -39,6 +39,7 @@ def get_people_from_row(row : pd.Series, people):
         pers = row.to_numpy(copy=True)
         p_race, p_eth, p_age = p
         for r in Race:
+            pers[get_people_from_row.INDS['TOTAL']] = 1
             pers[get_people_from_row.INDS[RACE_MAP[r]]] = 0
             pers[get_people_from_row.INDS[RACE_MAP[p_race]]] = 1
             pers[get_people_from_row.INDS['NUM_HISP']] = p_eth
@@ -104,7 +105,7 @@ if __name__ == '__main__':
         if i % 10000 == 0:
             print('%d / %d' % (i, len(df)))
         if row['TOTAL'] == 1:
-            new_rows.append(row)
+            new_rows.append(row.to_numpy())
             continue
         key = extract_hh_tuple(row)
         if key in microdata:
@@ -113,14 +114,12 @@ if __name__ == '__main__':
             people = sample_people_fallback(key)
         new_rows += get_people_from_row(row, people)
     people_df = pd.DataFrame(new_rows, columns=df.columns)
-    del people_df['TOTAL']
     for col in DEMO_COLS:
         people_df[col] = people_df[col].astype(int)
     print(people_df.head())
     print(len(people_df), 'rows')
-    for col in DEMO_COLS:
+    for col in ['TOTAL'] + DEMO_COLS:
         assert df[col].sum() == people_df[col].sum()
-    assert df['TOTAL'].sum() == len(people_df)
     if WRITE:
         with open(get_person_micro_file(task_name), 'w') as f:
             people_df.to_csv(f, index=False)
