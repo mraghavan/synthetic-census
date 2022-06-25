@@ -33,20 +33,19 @@ def sample_people(options):
 def extract_hh_tuple(row):
     return tuple(row[DEMO_COLS])
 
-def get_people_from_row(row, people):
+def get_people_from_row(row : pd.Series, people):
     l = []
     for p in people:
-        pers = row.copy()
+        pers = row.to_numpy(copy=True)
         p_race, p_eth, p_age = p
-        update_dict = {}
-        update_dict.update({RACE_MAP[r]: 0 for r in Race})
-        update_dict[RACE_MAP[p_race]] = 1
-        update_dict['NUM_HISP'] = p_eth
-        if p_age:
-            update_dict['18_PLUS'] = 1
-        else:
-            update_dict['18_PLUS'] = 0
-        pers.update(update_dict)
+        for r in Race:
+            pers[get_people_from_row.INDS[RACE_MAP[r]]] = 0
+            pers[get_people_from_row.INDS[RACE_MAP[p_race]]] = 1
+            pers[get_people_from_row.INDS['NUM_HISP']] = p_eth
+            if p_age:
+                pers[get_people_from_row.INDS['18_PLUS']] = 1
+            else:
+                pers[get_people_from_row.INDS['18_PLUS']] = 0
         l.append(pers)
     return l
 
@@ -100,6 +99,7 @@ if __name__ == '__main__':
     print(df.head())
     print(df.columns)
     print(DEMO_COLS)
+    get_people_from_row.INDS = {col: df.columns.get_loc(col) for col in ['TOTAL'] + DEMO_COLS}
     for i, row in df.iterrows():
         if i % 10000 == 0:
             print('%d / %d' % (i, len(df)))
@@ -112,7 +112,6 @@ if __name__ == '__main__':
         else:
             people = sample_people_fallback(key)
         new_rows += get_people_from_row(row, people)
-    # print(new_rows)
     people_df = pd.DataFrame(new_rows, columns=df.columns)
     del people_df['TOTAL']
     for col in DEMO_COLS:
@@ -121,6 +120,7 @@ if __name__ == '__main__':
     print(len(people_df), 'rows')
     for col in DEMO_COLS:
         assert df[col].sum() == people_df[col].sum()
+    assert df['TOTAL'].sum() == len(people_df)
     if WRITE:
         with open(get_person_micro_file(task_name), 'w') as f:
             people_df.to_csv(f, index=False)
