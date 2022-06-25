@@ -16,6 +16,8 @@ class Race(Enum):
     def __lt__(self, other):
         return self.value < other.value
 
+RACES = [r for r in Race]
+
 RACE_HIS_ENUM = [(r, h) for h in (0, 1) for r in Race]
 
 TYPES = [(r, f, s) for r in Race for f in (False, True) for s in range(1, 8)]
@@ -56,6 +58,11 @@ def get_eth_from_p_record(p_record):
     assert r in (0, 1)
     return r
 
+def get_age_from_p_record(p_record):
+    age = int(p_record[21:23])
+    assert 0 <= age
+    return age
+
 def get_is_family_from_h_record(h_record):
     fam = int(h_record[57:58])
     assert 0 <= fam and fam <= 7
@@ -84,6 +91,9 @@ def get_block_out_file():
 
 def get_swapped_file(task_name=''):
     return get_dist_dir() + task_name + 'swapped.csv'
+
+def get_person_micro_file(task_name=''):
+    return get_dist_dir() + task_name + 'person_micro.csv'
 
 def get_shape_file(area):
     shape_dict = {

@@ -28,6 +28,17 @@ SHORT_RN = {
         'H7X008': 'TWO_OR_MORE',
         'H8A003': 'BLOCK_18_PLUS',
         }
+RACE_MAP = {
+        Race.WHITE: 'W',
+        Race.BLACK: 'B',
+        Race.AM_IND_ALASKAN: 'AI_AN',
+        Race.ASIAN: 'AS',
+        Race.HAWAIIAN_PI: 'H_PI',
+        Race.OTHER: 'OTH',
+        Race.TWO_PLUS: 'TWO_OR_MORE',
+        }
+
+DEMO_COLS = [SHORT_RN[k] for k in sorted(SHORT_RN.keys())[1:-1]] + ['NUM_HISP', '18_PLUS']
 
 OUTPUT_COLS = [
         'YEAR',
