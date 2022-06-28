@@ -159,7 +159,7 @@ The synthetic dataset has the following columns:
 
 # Swapping
 
-First, download the 2010 shapefiles for that state from [IPUMS](https://data2.nhgis.org/main) (more detailed instructions coming).
+First, download the 2010 shapefiles for that state from [NHGIS](https://data2.nhgis.org/main) (more detailed instructions coming).
 
 To get swapped data, name the synthetic dataset `[output]/[state]/[name]_synthetic.csv`.
 Run `python3 swapping.py [name]`, which will run swap the dataset and write the resulting dataset to `[output]/[state]/[name]_swapped.csv`.
