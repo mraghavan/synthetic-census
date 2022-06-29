@@ -92,7 +92,6 @@ if __name__ == '__main__':
     print(num_rows, 'rows')
     print('Reading microdata...')
     microdata = read_microdata_granular(get_micro_file())
-    print(len(microdata))
 
     new_rows = []
     print('Adding identifier...')
