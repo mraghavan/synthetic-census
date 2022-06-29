@@ -6,6 +6,7 @@
   - [numpy](https://numpy.org/)
   - [scipy](https://scipy.org/)
   - [pandas](https://pandas.pydata.org/)
+  - [geopandas](https://geopandas.org/en/stable/) (for swapping)
   - [Gurobi](https://www.gurobi.com/), with a valid license and the python package `gurobipy` installed (`python3 -m pip install gurobipy`)
 
 ## Getting the data
