@@ -22,7 +22,7 @@ We'll need a combination of data from NHGIS and PUMS from the census. For a part
 
 ## Basic setup
 Create a file called `params.json` in the `code/` directory.
-The input data will need to be in `[data]/[state]`, and the output will be written to `output/state`.
+The input data will need to be in `[data]/[state]`, and the output will be written to `[output]/[state]`.
 `num_sols` specifies the maximum number of soluions to be returned for a block.
 `write` controls whether output files will be written.
 Make sure you set `write` to 1 before you run.
@@ -159,7 +159,14 @@ The synthetic dataset has the following columns:
 
 # Swapping
 
-First, download the 2010 shapefiles for that state from [NHGIS](https://data2.nhgis.org/main) (more detailed instructions coming).
+First, download the 2010 shapefiles from [NHGIS](https://data2.nhgis.org/main).
+- Download the US shapefiles for County, Census Tract, Congressional District 2008-2013, 110th-112th Congress, State Legislative District (Upper Chamber), State Legislative District (Lower Chamber). See the image below. Unzip all of these files into `[data]/US/shapefiles`.
+![Screenshot of US shapefiles](./img/us_shapefiles.png)
+- Download the state shapefiles.
+  - Enter `BLCK_GRP OR BLOCK` into Geographic Levels and set the year to 2010.
+  - Find the `2010 TIGER/LINE +` shapefile for the state in question in the GIS FILES tab.
+  - Unzip all the files into `[data]/[state]/shapefiles`.
+For all of these, make sure to download `2010 TIGER/LINE +` files.
 
 To get swapped data, name the synthetic dataset `[output]/[state]/[name]_synthetic.csv`.
 Run `python3 swapping.py [name]`, which will run swap the dataset and write the resulting dataset to `[output]/[state]/[name]_swapped.csv`.
