@@ -167,6 +167,7 @@ First, download the 2010 shapefiles from [NHGIS](https://data2.nhgis.org/main).
   - Enter `BLCK_GRP OR BLOCK` into Geographic Levels and set the year to 2010.
   - Find the `2010 TIGER/LINE +` shapefile for the state in question in the GIS FILES tab.
   - Unzip all the files into `[data]/[state]/shapefiles`.
+
 For all of these, make sure to download `2010 TIGER/LINE +` files.
 
 To get swapped data, name the synthetic dataset `[output]/[state]/[name]_synthetic.csv`.
