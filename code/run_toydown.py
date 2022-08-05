@@ -113,7 +113,7 @@ if __name__ == '__main__':
             'VAP': df[df['18_PLUS'] > 0][ARRAY_ORDER].sum(axis=0).values
             }
     print(state_data)
-    state_geo = GeoUnit(str(df['STATEA'][0]), None, state_data)
+    state_geo = GeoUnit(str(df['STATEA'][0]).zfill(2), None, state_data)
 
     # tx = GeoUnit("48", None, tx_data)
     # county_geounits = [GeoUnit(geoid, "48", attr) for geoid, attr in counties.items()]

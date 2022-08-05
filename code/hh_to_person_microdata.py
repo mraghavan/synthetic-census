@@ -21,7 +21,7 @@ def make_td_identifier(df):
     for col, l, col_s in zip(ID_COLS, id_lens, str_cols):
         assert max(num_digits(s) for s in df[col].unique()) <= l
         df[col_s] = df[col].astype(str).str.zfill(l)
-    df['td_identifier'] = pd.to_numeric(df[str_cols].astype(str).agg(''.join, axis=1))
+    df['td_identifier'] = df[str_cols].astype(str).agg(''.join, axis=1)
     for col_s in str_cols:
         del df[col_s]
 
