@@ -14,7 +14,7 @@ from partition_blocks import read_block_data
 ARRAY_ORDER = ['TOTAL', 'NUM_HISP', 'W', 'B', 'AI_AN', 'AS', 'H_PI', 'OTH', 'TWO_OR_MORE']
 
 def load_data(task_name):
-    return pd.read_csv(get_person_micro_file(task_name))
+    return pd.read_csv(get_person_micro_file(task_name), dtype={'td_identifier': str})
 
 def make_non_hispanic(df):
     df.loc[df['NUM_HISP'] > 0, ['W', 'B', 'AI_AN', 'AS', 'H_PI', 'OTH', 'TWO_OR_MORE']] = 0
