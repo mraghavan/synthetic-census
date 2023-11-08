@@ -236,6 +236,9 @@ def has_valid_age_data(row):
 def num_digits(num):
     return len(str(num))
 
+def approx_equal(a, b, tolerance=.001):
+    return abs(a-b) < tolerance
+
 if __name__ == '__main__':
     print(RACE_HIS_ENUM)
     print(TYPE_INDEX)
