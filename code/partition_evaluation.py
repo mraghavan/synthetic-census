@@ -63,8 +63,6 @@ if __name__ == '__main__':
     errors = []
     output = []
     for ind, row in df.iterrows():
-        if ind > 500:
-            break
         print()
         print('index', ind, 'id', row['identifier'])
         # print('Current memory usage', psutil.Process().memory_info().rss / (1024 * 1024), 'MB')
