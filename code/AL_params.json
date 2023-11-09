@@ -1,0 +1,12 @@
+{
+    "state": "AL",
+    "micro_file": "$HOME/Desktop/census_data/AL/al.2010.pums.01.txt",
+    "block_file": "$HOME/Desktop/census_data/AL/block_data.csv",
+    "block_clean_file": "$HOME/Desktop/census_data/AL/block_data_cleaned.csv",
+    "synthetic_output_dir": "$HOME/Desktop/census_data/output/AL/",
+    "swapped_file": "$HOME/Desktop/census_data/output/AL/swapped.csv",
+    "shape_file": "$HOME/Desktop/census_data/shapefiles/AL_block_2010.shp",
+    "group_shape_file": "$HOME/Desktop/census_data/shapefiles/AL_blck_grp_2010.shp",
+    "num_sols": 1000
+}
+

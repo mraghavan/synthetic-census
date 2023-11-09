@@ -5,6 +5,7 @@ from knapsack_utils import *
 from ip_distribution import ip_solve
 from encoding import *
 from math import log
+from collections import OrderedDict
 
 class SolverParams():
     def __init__(self, num_sols):
@@ -26,8 +27,8 @@ SOLVER_RESULTS = SolverResults()
 
 def recompute_probs(sol, dist):
     if len(sol) == 0:
-        return {}
-    new_sol = {}
+        return OrderedDict()
+    new_sol = OrderedDict()
     for seq in sol:
         new_sol[seq] = sum(log(dist[hh]) for hh in seq) + log(perms_to_combs(seq))
     return exp_normalize(new_sol)
