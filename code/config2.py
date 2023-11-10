@@ -44,8 +44,13 @@ class ParserBuilder():
 
     def verify_required_args(self):
         for req in self.required_args:
-            if self.required_args[req] and self.args.__dict__[req] == self.parser_options[req][0]:
-                raise ValueError('Must specify %s' % req)
+            if self.required_args[req]:
+                if self.args.__dict__[req] == self.parser_options[req][0]:
+                    raise ValueError('Must specify %s' % req)
+                # make sure it's a valid file path
+                elif req in self.file_paths:
+                    if not os.path.exists(self.args.__dict__[req]):
+                        raise ValueError('%s does not exist' % self.args.__dict__[req])
 
 class Config():
     def __init__(self):
