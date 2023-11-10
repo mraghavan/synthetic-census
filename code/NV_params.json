@@ -1,0 +1,12 @@
+{
+    "state": "NV",
+    "micro_file": "/pool001/mragh/census_data/NV/nv.2010.pums.01.txt",
+    "block_file": "/pool001/mragh/census_data/NV/block_data.csv",
+    "block_clean_file": "/pool001/mragh/census_data/NV/block_data_cleaned.csv",
+    "synthetic_output_dir": "/pool001/mragh/census_data/output/NV/",
+    "swapped_file": "/pool001/mragh/census_data/output/NV/swapped.csv",
+    "shape_file": "/pool001/mragh/census_data/shapefiles/NV_block_2010.shp",
+    "group_shape_file": "/pool001/mragh/census_data/shapefiles/NV_blck_grp_2010.shp",
+    "num_sols": 1000
+}
+
