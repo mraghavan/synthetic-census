@@ -78,7 +78,9 @@ def main():
     hh_dist = encode_hh_dist(read_microdata(args.micro_file))
     test_row = 3
     pool = mp.Pool(mp.cpu_count())
-    num_samples = 10
+    num_samples = 1000
+    print('num cpus', mp.cpu_count())
+    print('total number of samples', num_samples * mp.cpu_count())
     row = df.iloc[test_row]
     sol = solve(row, hh_dist)
 
@@ -103,7 +105,7 @@ def main():
         all_missing_masses[(num_iterations, k)] = get_missing_mass(mcmc_dist, counter_sol)
         print(all_tvds[(num_iterations, k)], all_missing_masses[(num_iterations, k)])
 
-    with open ('./mcmc_results.pkl', 'wb') as f:
+    with open ('/pool001/mragh/census_data/output/AL/mcmc_results.pkl', 'wb') as f:
         pickle.dump(
                 {
                     'random_tvds': random_tvds,
@@ -113,3 +115,6 @@ def main():
                     'num_random_samples': num_samples * mp.cpu_count(),
                     },
                 f)
+
+if __name__ == '__main__':
+    main()

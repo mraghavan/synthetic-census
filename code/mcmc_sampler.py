@@ -1,6 +1,7 @@
 from knapsack_utils import *
 from ip_distribution import ip_solve
-from math import log, comb
+from math import log
+from scipy.special import comb
 from collections import Counter
 from itertools import combinations
 from functools import lru_cache
