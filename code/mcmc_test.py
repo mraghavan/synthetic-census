@@ -46,6 +46,11 @@ def get_dist_over_n_random_samples(sol, n, num_attempts=1000):
         all_dists.append(random_dist)
     return all_dists
 
+def get_dist_over_samples_pooled(sol, n, pool, num_attempts_per_thread=1000):
+    dists = pool.starmap(get_dist_over_n_random_samples, [(sol, n*pool._processes, num_attempts_per_thread)] * pool._processes)
+    all_dists = sum(dists, [])
+    return all_dists
+
 def get_tvd(d1: Counter, d2: Counter):
     tvd = 0
     for k in d1:
@@ -65,7 +70,6 @@ def main():
     print(parser_builder.args)
     parser_builder.verify_required_args()
     args = parser_builder.args
-    SOLVER_PARAMS.num_sols = args.num_sols
 
     df = read_block_data(args.block_clean_file)
     # non-empty rows
@@ -74,9 +78,9 @@ def main():
     hh_dist = encode_hh_dist(read_microdata(args.micro_file))
     test_row = 3
     pool = mp.Pool(mp.cpu_count())
-    num_samples = 1000
-    print('num cpus', mp.cpu_count())
-    print('total number of samples', num_samples * mp.cpu_count())
+    sample_size_per_thread = 400
+    print('num cpus', pool._processes) #type: ignore
+    print('Sample size', sample_size_per_thread * pool._processes) #type: ignore
     row = df.iloc[test_row]
     sol = solve(row, hh_dist)
 
@@ -84,8 +88,8 @@ def main():
     num_iterations = [1, 10, 100, 1000, 10000, 100000]
 
     combos_to_test = [(i, k) for i in num_iterations for k in ks]
-    all_random_dists = get_dist_over_n_random_samples(sol, num_samples * mp.cpu_count())
-    print('using', sum(all_random_dists[0].values()), 'random samples')
+    all_random_dists = get_dist_over_samples_pooled(sol, sample_size_per_thread, pool, num_attempts_per_thread=50)
+    print('Generated', len(all_random_dists), 'random samples of size', sum(all_random_dists[0].values()))
     counter_sol = Counter(sol)
     random_tvds = [get_tvd(Counter(normalize(d)), counter_sol) for d in all_random_dists]
     random_missing_masses = [get_missing_mass(Counter(normalize(d)), counter_sol) for d in all_random_dists]
@@ -94,7 +98,7 @@ def main():
     all_missing_masses = {}
     for num_iterations, k in combos_to_test:
         print('num_iterations', num_iterations, 'k', k)
-        dists = pool.starmap(get_n_mcmc_samples, [(encode_row(row), hh_dist, num_samples, num_iterations, k)] * mp.cpu_count())
+        dists = pool.starmap(get_n_mcmc_samples, [(encode_row(row), hh_dist, sample_size_per_thread, num_iterations, k)] * pool._processes) #type: ignore
         mcmc_dist = sum(dists, Counter())
         mcmc_dist = Counter(normalize(mcmc_dist))
         all_tvds[(num_iterations, k)] = get_tvd(mcmc_dist, counter_sol)
@@ -108,7 +112,7 @@ def main():
                     'random_missing_masses': random_missing_masses,
                     'all_tvds': all_tvds,
                     'all_missing_masses': all_missing_masses,
-                    'num_random_samples': num_samples * mp.cpu_count(),
+                    'num_random_samples': sample_size_per_thread * pool._processes, #type: ignore
                     },
                 f)
 
