@@ -26,7 +26,7 @@ def ip_solve(counts, dist, num_solutions=50):
 
     # print('Obj: %g' % m.objVal)
     nSolutions = m.SolCount
-    print('Number of solutions found: ' + str(nSolutions))
+    # print('Number of solutions found: ' + str(nSolutions))
     # for sol in range(nSolutions):
         # m.setParam(GRB.Param.SolutionNumber, sol)
         # print(m.PoolObjVal)

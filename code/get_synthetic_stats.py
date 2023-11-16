@@ -188,14 +188,17 @@ def add_tex_var(name, value, precision=2):
         return
     TEX_VARS[name] = (value, precision)
 
-def print_all_tex_vars():
+def print_all_tex_vars(state):
     for name, (value, precision) in TEX_VARS.items():
         if type(value) == str:
-            print('\\newcommand{\\%s%s}{%s}' % (STATE, name, value))
+            print('\\newcommand{\\%s%s}{%s}' % (state, name, value))
         elif type(value) == int:
-            print('\\newcommand{\\%s%s}{%s}' % (STATE, name, f"{value:,}"))
+            print('\\newcommand{\\%s%s}{%s}' % (state, name, f"{value:,}"))
+        # if value is sufficiently small, use scientific notation
+        elif abs(value) < 0.001:
+            print(('\\newcommand{\\%s%s}{%.' + str(precision) + 'e}') % (state, name, value))
         else:
-            print(('\\newcommand{\\%s%s}{%.' + str(precision) + 'f}') % (STATE, name, value))
+            print(('\\newcommand{\\%s%s}{%.' + str(precision) + 'f}') % (state, name, value))
 
 if __name__ == '__main__':
     # if len(sys.argv) >= 2:
@@ -226,4 +229,4 @@ if __name__ == '__main__':
     add_tex_var('TVDUnadjustedAccOne', tot_var_dist, precision=3)
     add_tex_var('TVDAdjustedAccOne', size_adjusted, precision=3)
 
-    print_all_tex_vars()
+    print_all_tex_vars(STATE)

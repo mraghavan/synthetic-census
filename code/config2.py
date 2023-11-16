@@ -29,7 +29,6 @@ class ParserBuilder():
 
     def parse_args(self):
         self.args = self.parser.parse_args()
-        print(self.args.num_sols)
         if self.args.from_params != '':
             with open(self.args.from_params, 'rb') as f:
                 params = json.load(f)

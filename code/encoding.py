@@ -10,7 +10,7 @@ def encode_row(row):
     age_eth = (get_age_eth(row),)
     type_encoding = get_types(row)
     num_hh = (get_num_hhs(row),)
-    print([(t, te) for te, t in zip(type_encoding, TYPES) if te > 0])
+    # print([(t, te) for te, t in zip(type_encoding, TYPES) if te > 0])
     return Encoding1(*(rh_counts + age_race + age_eth + type_encoding + num_hh))
 
 class Encoding1(namedtuple('Encoding1',
