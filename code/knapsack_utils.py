@@ -26,6 +26,34 @@ def is_eligible(house, counts):
 def tup_minus(a, b):
     return tuple(i - j for i, j in zip(a, b))
 
+def tup_plus(a, b):
+    return tuple(i + j for i, j in zip(a, b))
+
+def tup_sum(l):
+    assert len(l) > 0
+    s = l[0]
+    for i in l[1:]:
+        s = tup_plus(s, i)
+    return s
+
+def counter_minus(c1, c2):
+    # return c1 - c2 where c1 and c2 are Counters
+    diff = Counter({k: v - c2[k] for k, v in c1.items()})
+    assert all(v >= 0 for v in diff.values())
+    return diff
+
+def is_feasible(x, counts):
+    return all(i <= j for i, j in zip(tup_sum(x), counts))
+
+def tup_times(a: tuple, b: int):
+    return tuple(i * b for i in a)
+
+def tup_is_zero(tup):
+    return all(i == 0 for i in tup)
+
+def tup_is_nonneg(tup):
+    return all(i >= 0 for i in tup)
+
 def perms_to_combs(seq):
     c = Counter(seq)
     t = tuple(c.values())
@@ -46,3 +74,7 @@ def make_one_hot(i, n):
 
 def make_one_hot_np(i, n):
     return np.array(make_one_hot(i, n), dtype=int)
+
+def logsumexp(seq):
+    m = max(seq)
+    return m + np.log(sum(np.exp(i - m) for i in seq))
