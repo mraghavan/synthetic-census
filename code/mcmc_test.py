@@ -12,10 +12,6 @@ parser_builder = ParserBuilder(
          'micro_file': True,
          'block_clean_file': True,
          'synthetic_output_dir': False,
-         'num_sols': False,
-         'task': False,
-         'num_tasks': False,
-         'task_name': False,
          })
 
 def read_block_data(block_clean_file):
@@ -105,7 +101,7 @@ def main():
         all_missing_masses[(num_iterations, k)] = get_missing_mass(mcmc_dist, counter_sol)
         print(all_tvds[(num_iterations, k)], all_missing_masses[(num_iterations, k)])
 
-    with open ('/pool001/mragh/census_data/output/AL/mcmc_results.pkl', 'wb') as f:
+    with open (args.synthetic_output_dir + 'mcmc_results.pkl', 'wb') as f:
         pickle.dump(
                 {
                     'random_tvds': random_tvds,
