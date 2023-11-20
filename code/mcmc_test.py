@@ -15,7 +15,7 @@ parser_builder = ParserBuilder(
          'synthetic_output_dir': False,
          })
 
-def read_block_data(block_clean_file):
+def read_block_data(block_clean_file: str):
     return pd.read_csv(block_clean_file)
 
 def sample_from_sol(sol):
@@ -56,7 +56,7 @@ def get_tvd(d1: Counter, d2: Counter):
     tvd = 0
     for k in d1:
         tvd += abs(d1[k] - d2[k])
-    return tvd
+    return tvd/2
 
 def get_missing_mass(d1: Counter, d2: Counter):
     # d2 is the true distribution
