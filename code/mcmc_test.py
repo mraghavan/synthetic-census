@@ -114,7 +114,7 @@ def main():
     print('cpu')
 
     ks = [2, 3, 4, 5]
-    num_iterations = [1, 10, 100, 1000, 10000, 100000]
+    num_iterations = [1, 10, 100, 1000, 10000]
 
     counts = encode_row(row)
     counter_sol = Counter(sol)
