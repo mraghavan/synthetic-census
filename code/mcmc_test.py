@@ -106,7 +106,7 @@ def main():
     dist = encode_hh_dist(read_microdata(args.micro_file))
     test_row = 3
     pool = mp.Pool(mp.cpu_count()//2)
-    sample_size_per_thread = 100
+    sample_size_per_thread = 400
     print('num cpus', pool._processes) #type: ignore
     print('Sample size', sample_size_per_thread * pool._processes) #type: ignore
     row = df.iloc[test_row]
