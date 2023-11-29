@@ -1,4 +1,3 @@
-import os
 from enum import Enum, auto
 from functools import lru_cache
 import re

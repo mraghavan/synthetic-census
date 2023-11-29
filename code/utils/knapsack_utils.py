@@ -1,6 +1,5 @@
 from collections import Counter
-from functools import lru_cache, reduce
-import scipy
+from functools import reduce
 from scipy.special import comb
 import numpy as np
 import operator
@@ -67,12 +66,12 @@ def scipy_multinomial(params):
             scipy_multinomial(params[:-1]))
     return coeff
 
-def make_one_hot(i, n):
+def make_one_hot(i: int, n: int):
     l = [0] * n
     l[i] = 1
     return tuple(l)
 
-def make_one_hot_np(i, n):
+def make_one_hot_np(i: int, n: int):
     return np.array(make_one_hot(i, n), dtype=int)
 
 def logsumexp(seq):

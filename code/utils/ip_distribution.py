@@ -1,9 +1,10 @@
 import gurobipy as gp
+import numpy as np
 from gurobipy import GRB
-from knapsack_utils import *
+from knapsack_utils import get_ordering, normalize
 from math import log
 
-def ip_solve(counts: tuple[int], dist, num_solutions=50):
+def ip_solve(counts: tuple[int, ...], dist, num_solutions=50):
     ordering = get_ordering(dist)
     constraint_mat = np.array(ordering).T
     # print(constraint_mat)

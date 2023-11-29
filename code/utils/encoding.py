@@ -1,6 +1,8 @@
-from collections import namedtuple
-from census_utils import *
-from build_micro_dist import *
+from collections import namedtuple, Counter
+import numpy as np
+from ..preprocessing.build_micro_dist import rh_to_str, r_to_str, t_to_str
+from knapsack_utils import make_one_hot_np
+from census_utils import get_rh_counts, get_over_18_counts, get_age_eth, get_types, get_num_hhs, RACE_HIS_ENUM, Race, TYPES, TYPE_INDEX
 
 MAX_LEVEL = 3
 
@@ -28,6 +30,7 @@ class Encoding1(namedtuple('Encoding1',
             if i == 1:
                 the_type = t
                 break
+        assert the_type is not None
         # Ethnicity as last field
         if sum(type_range) == 2:
             the_type += (1,)
