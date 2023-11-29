@@ -1,5 +1,5 @@
-from .preprocessing.build_block_df import get_clean_block_df
-from .utils.config2 import ParserBuilder
+from syn_census.preprocessing.build_block_df import get_clean_block_df
+from syn_census.utils.config2 import ParserBuilder
 
 parser_builder = ParserBuilder({
     'block_file': True,

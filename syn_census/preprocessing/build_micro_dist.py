@@ -128,8 +128,6 @@ def read_microdata(fname):
                 eth = get_eth_from_p_record(line)
                 age = get_age_from_p_record(line)
                 assert(hh_data is not None)
-                if hh_data.holder is None:
-                    raise Exception('No holder for household')
                 if hh_data.holder == None:
                     hh_data.holder = Person(race, eth, age)
                 hh_data.people.append(Person(race, eth, age))

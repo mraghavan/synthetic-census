@@ -1,5 +1,4 @@
 import pandas as pd
-import pickle
 import os
 import sys
 import numpy as np
@@ -7,18 +6,6 @@ from .guided_solver import SOLVER_PARAMS, SOLVER_RESULTS, SolverResults, solve
 from ..utils.encoding import encode_hh_dist
 from ..utils.census_utils import *
 from ..preprocessing.build_micro_dist import read_microdata
-from ..utils.config2 import ParserBuilder
-
-parser_builder = ParserBuilder({
-    'state': True,
-    'micro_file': True,
-    'block_clean_file': True,
-    'synthetic_output_dir': True,
-    'num_sols': False,
-    'task': False,
-    'num_tasks': False,
-    'task_name': False,
-    })
 
 def read_block_data(block_clean_file: str):
     return pd.read_csv(block_clean_file)
@@ -31,23 +18,25 @@ def sample_from_sol(sol):
     else:
         return keys[0]
 
-if __name__ == '__main__':
-    parser_builder.parse_args()
-    print(parser_builder.args)
-    args = parser_builder.args
-    task = args.task
-    num_tasks = args.num_tasks
-    if args.task_name != '':
-        task_name = args.task_name + '_'
+def generate_data(
+        out_file: str,
+        micro_file: str,
+        block_clean_file: str,
+        num_sols: int,
+        task: int,
+        num_tasks: int,
+        task_name: str = '',
+        ):
+    if task_name != '':
+        task_name = task_name + '_'
     else:
         task_name = ''
-    out_file = args.synthetic_output_dir + task_name + '%d_%d.pkl' % (task, num_tasks)
     if os.path.exists(out_file):
         print(out_file, 'already exists')
         sys.exit(0)
-    SOLVER_PARAMS.num_sols = args.num_sols
+    SOLVER_PARAMS.num_sols = num_sols
 
-    df = read_block_data(args.block_clean_file)
+    df = read_block_data(block_clean_file)
     # non-empty rows
     df = df[df['H7X001'] > 0]
     n = len(df)
@@ -57,13 +46,12 @@ if __name__ == '__main__':
     df = df.iloc[first_ind:last_ind+1]
     print(len(df), 'blocks to process')
     print(df.head())
-    hh_dist = encode_hh_dist(read_microdata(args.micro_file))
+    hh_dist = encode_hh_dist(read_microdata(micro_file))
     errors = []
     output = []
     for ind, row in df.iterrows():
         print()
         print('index', ind, 'id', row['identifier'])
-        # print('Current memory usage', psutil.Process().memory_info().rss / (1024 * 1024), 'MB')
         identifier = str(row['identifier'])
         sol = solve(row, hh_dist)
         print(len(sol), 'unique solutions')
@@ -87,8 +75,4 @@ if __name__ == '__main__':
                     'age': SOLVER_RESULTS.use_age,
                     'types': chosen_types,
                     })
-        print('errors', errors, file=sys.stderr)
-    print('Writing to', out_file)
-    with open(out_file, 'wb') as f:
-        pickle.dump(output, f)
-    print(len(errors), 'errors')
+    return(output, errors)
