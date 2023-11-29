@@ -1,14 +1,15 @@
-from census_utils import *
 import os
 import pickle
 import numpy as np
-from collections import Counter, OrderedDict
-from knapsack_utils import normalize
+from collections import OrderedDict
 import sys
-from config2 import *
 import pandas as pd
+import re
 import matplotlib.pyplot as plt
+from ..utils.config2 import ParserBuilder
 from get_synthetic_stats import add_tex_var, print_all_tex_vars
+# from census_utils import *
+# from ..utils.knapsack_utils import normalize
 
 parser_builder = ParserBuilder(
         {'state': True,

@@ -1,13 +1,14 @@
-from guided_solver import *
-from census_utils import *
-from config2 import *
 import pandas as pd
-from build_micro_dist import read_microdata
 import pickle
 import sys
-# from knapsack_sampler import knapsack_solve
-from mcmc_sampler import MCMCSampler
-# import psutil
+import numpy as np
+import os
+from ..synthetic_data_generation.mcmc_sampler import MCMCSampler
+from ..preprocessing.build_micro_dist import read_microdata
+from ..synthetic_data_generation.guided_solver import solve, SOLVER_PARAMS, SOLVER_RESULTS, SolverResults
+from ..utils.config2 import ParserBuilder
+from ..utils.encoding import encode_hh_dist, encode_row
+
 parser_builder = ParserBuilder(
         {'state': True,
          'micro_file': True,
@@ -19,7 +20,7 @@ parser_builder = ParserBuilder(
          'task_name': False,
          })
 
-def read_block_data(block_clean_file):
+def read_block_data(block_clean_file: str):
     return pd.read_csv(block_clean_file)
 
 def sample_from_sol(sol):
@@ -33,7 +34,6 @@ def sample_from_sol(sol):
 if __name__ == '__main__':
     parser_builder.parse_args()
     print(parser_builder.args)
-    # parser_builder.verify_required_args()
     args = parser_builder.args
     task = args.task
     num_tasks = args.num_tasks
