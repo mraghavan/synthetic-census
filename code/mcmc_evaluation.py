@@ -72,7 +72,7 @@ if __name__ == '__main__':
     all_ks = sorted(list(set([k for _, k in all_tvds])))
     all_num_iterations = sorted(list(set([num_iterations for num_iterations, _ in all_tvds])))
     for k in all_ks:
-        plt.errorbar(all_num_iterations, [all_tvds[(num, k)] for num in all_num_iterations], label='k={}'.format(k), yerr=tvd_interval)
+        plt.plot(all_num_iterations, [all_tvds[(num, k)] for num in all_num_iterations], label='k={}'.format(k))
     plt.legend()
     plt.xlabel('Number of MCMC iterations')
     plt.ylabel('Total variation distance')
@@ -86,7 +86,7 @@ if __name__ == '__main__':
 
     # make missing mass plot: one line for each k, x axis is num_iterations
     for k in all_ks:
-        plt.errorbar(all_num_iterations, [all_missing_masses[(num, k)] for num in all_num_iterations], label='k={}'.format(k), yerr=missing_mass_interval)
+        plt.plot(all_num_iterations, [all_missing_masses[(num, k)] for num in all_num_iterations], label='k={}'.format(k))
     plt.legend()
     plt.xlabel('Number of MCMC iterations')
     plt.ylabel('Missing probability mass')
