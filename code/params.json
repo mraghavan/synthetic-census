@@ -1,7 +1,0 @@
-{
-    "state": "VT",
-    "data": "$HOME/Desktop/census_data/",
-    "output": "$HOME/Desktop/census_data/output/",
-    "num_sols": 100,
-    "write": 0
-}
