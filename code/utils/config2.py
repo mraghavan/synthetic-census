@@ -32,7 +32,6 @@ class ParserBuilder():
                 raise ValueError('Invalid requirement %s' % req)
             self.parser.add_argument('--' + req, default=self.parser_options[req][0], type=self.parser_options[req][1])
         self.required_args = requirements.copy()
-        self.verify_required_args()
 
     def parse_args(self):
         self.args = self.parser.parse_args()
@@ -47,6 +46,7 @@ class ParserBuilder():
         for f in self.file_paths:
             if f in self.required_args:
                 self.args.__dict__[f] = os.path.expandvars(self.args.__dict__[f])
+        self.verify_required_args()
 
     def verify_required_args(self):
         for req in self.required_args:

@@ -1,7 +1,6 @@
 import numpy as np
 from functools import cache
 from math import log, factorial
-# import psutil
 from ..utils.knapsack_utils import get_ordering, is_eligible, tup_minus, tup_is_zero, exp_normalize, logsumexp, tup_times, normalize
 
 def knapsack_solve(counts: tuple[int, ...], dist: dict[tuple[int, ...], float]):

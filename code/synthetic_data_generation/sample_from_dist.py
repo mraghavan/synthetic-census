@@ -123,7 +123,11 @@ if __name__ == '__main__':
     print(df.head())
     dist = read_microdata(args.micro_file)
     dist = process_dist(dist)
-    sample, accs, errors = load_sample_and_accs(args.task_name, dist, args.synthetic_output_dir)
+    if args.task_name != '':
+        task_name = args.task_name + '_'
+    else:
+        task_name = ''
+    sample, accs, errors = load_sample_and_accs(task_name, dist, args.synthetic_output_dir)
     df_dict = {col: [] for col in OUTPUT_COLS}
     for ind, row in df.iterrows():
         if row['identifier'] in errors:
