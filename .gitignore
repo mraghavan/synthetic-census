@@ -133,3 +133,7 @@ dmypy.json
 .pyre/
 
 *.pkl
+*.png
+*.tex
+*.csv
+.DS_Store
