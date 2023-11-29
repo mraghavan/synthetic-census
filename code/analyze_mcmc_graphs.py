@@ -201,7 +201,7 @@ if __name__ == '__main__':
             print('Solution density', density)
     sorted_gammas = sorted(gammas.values())
     if len(densities) > 0 and len(mixing_times) > 0:
-        fig, ax1: plt.Axes = plt.subplots()
+        fig, ax1 = plt.subplots()
         line1, = ax1.plot(sorted_gammas, [1/densities[gamma] for gamma in sorted_gammas], label='1/solution density')
         ax1.set_yscale('log')
         ax1.set_xlabel(r'$\gamma$')
