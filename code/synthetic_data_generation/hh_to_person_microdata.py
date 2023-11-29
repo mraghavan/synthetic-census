@@ -1,13 +1,18 @@
-from census_utils import *
-from build_micro_dist import read_microdata_granular
 import pandas as pd
-import numpy as np
-import sys
-from sample_from_dist import DEMO_COLS, RACE_MAP
 import random
+from sample_from_dist import DEMO_COLS, RACE_MAP
+from ..utils.census_utils import Race
+from ..preprocessing.build_micro_dist import read_microdata_granular
+from ..utils.config2 import ParserBuilder
 
-def load_data(task_name):
-    return pd.read_csv(get_synthetic_out_file(task_name))
+parser_builder = ParserBuilder({
+    'micro_file': True,
+    'person_micro_file': False,
+    'block_clean_file': True,
+    })
+
+def load_data(fname: str):
+    return pd.read_csv(fname)
 
 def make_td_identifier(df):
     ID_COLS = [
@@ -19,7 +24,7 @@ def make_td_identifier(df):
     id_lens = [2, 3, 6, 4]
     str_cols = [col + '_str' for col in ID_COLS]
     for col, l, col_s in zip(ID_COLS, id_lens, str_cols):
-        assert max(num_digits(s) for s in df[col].unique()) <= l
+        assert max(num_digits(s) for s in df[col].unique()) <= l #type: ignore
         df[col_s] = df[col].astype(str).str.zfill(l)
     df['td_identifier'] = df[str_cols].astype(str).agg(''.join, axis=1)
     for col_s in str_cols:
@@ -82,16 +87,15 @@ def sample_people_fallback(key):
     return list(zip(races, eths, ages))
 
 if __name__ == '__main__':
-    if len(sys.argv) >= 2:
-        task_name = sys.argv[1] + '_'
-    else:
-        task_name = ''
+    parser_builder.parse_args()
+    print(parser_builder.args)
+    args = parser_builder.args
     print('Loading data...')
-    df = load_data(task_name)
+    df = load_data(args.synthetic_data)
     num_rows = len(df)
     print(num_rows, 'rows')
     print('Reading microdata...')
-    microdata = read_microdata_granular(get_micro_file())
+    microdata = read_microdata_granular(args.micro_file)
 
     new_rows = []
     print('Adding identifier...')
@@ -101,7 +105,7 @@ if __name__ == '__main__':
     print(DEMO_COLS)
     get_people_from_row.INDS = {col: df.columns.get_loc(col) for col in ['TOTAL'] + DEMO_COLS}
     for i, row in df.iterrows():
-        if i % 10000 == 0:
+        if i % 10000 == 0: #type: ignore
             print('%d / %d' % (i, len(df)))
         if row['TOTAL'] == 1:
             new_rows.append(row.to_numpy())
@@ -119,6 +123,6 @@ if __name__ == '__main__':
     print(len(people_df), 'rows')
     for col in ['TOTAL'] + DEMO_COLS:
         assert df[col].sum() == people_df[col].sum()
-    if WRITE:
-        with open(get_person_micro_file(task_name), 'w') as f:
+    if args.person_micro_file:
+        with open(args.person_micro_file, 'w') as f:
             people_df.to_csv(f, index=False)

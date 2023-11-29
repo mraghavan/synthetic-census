@@ -1,4 +1,4 @@
-from collections import Counter
+from collections import Counter, OrderedDict
 from functools import reduce
 from scipy.special import comb
 import numpy as np
@@ -9,11 +9,11 @@ def prod(seq):
 
 def normalize(dist):
     tot = sum(dist.values())
-    return {k: v/tot for k, v in dist.items()}
+    return OrderedDict({k: v/tot for k, v in dist.items()})
 
-def exp_normalize(dist):
+def exp_normalize(dist: dict):
     m = max(dist.values())
-    dist = {k: np.exp(v - m) for k, v in dist.items()}
+    dist = OrderedDict({k: np.exp(v - m) for k, v in dist.items()})
     return normalize(dist)
 
 def get_ordering(dist):

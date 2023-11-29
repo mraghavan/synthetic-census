@@ -1,11 +1,9 @@
-from build_micro_dist import *
-from census_utils import Race
-from encoding import *
-from knapsack_utils import *
-from ip_distribution import ip_solve
-from encoding import *
 from math import log
-from collections import OrderedDict
+from collections import OrderedDict, Counter
+from ..utils.census_utils import has_valid_age_data
+from ..utils.knapsack_utils import normalize, exp_normalize, perms_to_combs
+from ..utils.ip_distribution import ip_solve
+from ..utils.encoding import encode_row, get_num_hhs, MAX_LEVEL
 
 class SolverParams():
     def __init__(self, num_sols):
@@ -43,14 +41,14 @@ def solve(row, dist, level=1):
     SOLVER_RESULTS.level = level
     if level > MAX_LEVEL:
         SOLVER_RESULTS.status = SolverResults.UNSOLVED
-        return {}
+        return OrderedDict()
     solve_dist = dist
     use_age = has_valid_age_data(row)
     SOLVER_RESULTS.use_age = use_age
     counts = encode_row(row)
     if get_num_hhs(row) == 1 and use_age:
         SOLVER_RESULTS.status = SolverResults.OK
-        sol = {(counts,): 1.0}
+        sol = OrderedDict({(counts,): 1.0})
         return sol
     if level > 1:
         solve_dist = reduce_dist(dist, level, use_age)

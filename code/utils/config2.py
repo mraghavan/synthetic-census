@@ -6,6 +6,7 @@ class ParserBuilder():
     parser_options = {
         'state': ('', str),
         'micro_file': ('', str),
+        'person_micro_file': ('', str),
         'block_file': ('', str),
         'block_clean_file': ('', str),
         'synthetic_output_dir': ('', str),
@@ -17,6 +18,7 @@ class ParserBuilder():
         }
     file_paths = {
             'micro_file',
+            'person_micro_file',
             'block_file',
             'block_clean_file',
             'synthetic_output_dir',
