@@ -135,33 +135,6 @@ def main():
         with open(job, 'wb') as f:
             print ('Writing', job)
             pickle.dump(res, f)
-    # combos_to_test = [(i, k) for i in num_iterations for k in ks]
-    # all_random_dists = get_dist_over_samples_pooled(sol, sample_size_per_thread, pool, num_attempts_per_thread=50)
-    # print('Generated', len(all_random_dists), 'random samples of size', sum(all_random_dists[0].values()))
-    # random_tvds = [get_tvd(Counter(normalize(d)), counter_sol) for d in all_random_dists]
-    # random_missing_masses = [get_missing_mass(Counter(normalize(d)), counter_sol) for d in all_random_dists]
-    # print('Got random TVDs', 'mean', np.mean(random_tvds), 'std', np.std(random_tvds))
-    # all_tvds = {}
-    # all_missing_masses = {}
-    # for num_iterations, k in combos_to_test:
-        # print('num_iterations', num_iterations, 'k', k)
-        # dists = pool.starmap(get_n_mcmc_samples, [(encode_row(row), hh_dist, sample_size_per_thread, num_iterations, k)] * pool._processes) #type: ignore
-        # mcmc_dist = sum(dists, Counter())
-        # mcmc_dist = Counter(normalize(mcmc_dist))
-        # all_tvds[(num_iterations, k)] = get_tvd(mcmc_dist, counter_sol)
-        # all_missing_masses[(num_iterations, k)] = get_missing_mass(mcmc_dist, counter_sol)
-        # print(all_tvds[(num_iterations, k)], all_missing_masses[(num_iterations, k)])
-
-    # with open (args.synthetic_output_dir + 'mcmc_results.pkl', 'wb') as f:
-        # pickle.dump(
-                # {
-                    # 'random_tvds': random_tvds,
-                    # 'random_missing_masses': random_missing_masses,
-                    # 'all_tvds': all_tvds,
-                    # 'all_missing_masses': all_missing_masses,
-                    # 'num_random_samples': sample_size_per_thread * pool._processes, #type: ignore
-                    # },
-                # f)
 
 if __name__ == '__main__':
     main()

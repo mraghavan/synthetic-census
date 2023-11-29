@@ -41,6 +41,7 @@ class MCMCSampler:
         return solutions
 
     def get_g_x_xprime_and_g_xprime_x(self, x, xprime):
+        # Currently unused
         # print('x', x)
         # print('xprime', xprime)
         all_ys, all_removed = self.find_all_feasible_removals(x, xprime)
@@ -104,7 +105,7 @@ class MCMCSampler:
     def get_sampling_num(self, x_counter, removal_counter):
         return prod([comb(x_counter[a], removal_counter[a]) for a in removal_counter])
 
-    def generate_random_removal(self, x):
+    def generate_random_removal(self, x: tuple[tuple[int]]):
         # remove k elements at random
         remove_indices = np.random.choice(len(x), self.k, replace=False)
         # y = tuple(a for i, a in enumerate(x) if i not in remove_indices)
@@ -114,13 +115,17 @@ class MCMCSampler:
         else:
             return None
 
-    def mcmc_solve(self, counts):
+    def mcmc_solve(self, counts: tuple[int]):
         # get initial solution using ip_solve
         current_solution = ip_solve(counts, self.dist, num_solutions=1)[0]
         # print('Initial solution:', current_solution)
         assert(len(current_solution) > self.k)
-        for i in range(self.num_iterations):
+        for _ in range(self.num_iterations):
+            # TODO make this use get_next_state
             # print('Iteration', i, current_solution)
+            # Make the chain lazy
+            if np.random.random() < 0.5:
+                continue
             # randomly remove k items from the solution
             removed = self.generate_random_removal(current_solution)
             if removed is None:
@@ -163,35 +168,80 @@ class MCMCSampler:
                 # MCMCSampler.num_transitions += 1
         return current_solution
 
+    def get_next_state(self, counts: tuple[int], current_state: tuple[tuple[int]]):
+        if np.random.random() < 0.5:
+            return current_state
+        removed = self.generate_random_removal(current_state)
+        if removed is None:
+            return current_state
+        counter_removed = Counter(removed)
+        xprime = []
+        for hh in current_state:
+            if counter_removed[hh] == 0:
+                xprime.append(hh)
+            else:
+                counter_removed[hh] -= 1
+        # print('Removing', removed)
+        # use ip_solve to solve the new subproblem
+        all_solutions = self.ip_solve_cached(tup_sum(removed))
+        if len(all_solutions) >= MAX_SOLUTIONS:
+            raise Exception('Too many solutions')
+        # randomly choose one of the solutions
+        xprime += all_solutions[np.random.choice(len(all_solutions))]
+        xprime = tuple(sorted(xprime))
+        if sols_equal(xprime, current_state):
+            return current_state
+        x_prob = get_log_prob(current_state, self.dist)
+        xprime_prob = get_log_prob(xprime, self.dist)
+        ratio = np.exp(xprime_prob - x_prob)
+
+        A = min(1, ratio)
+        if np.random.uniform() < A:
+            return xprime
+        else:
+            return current_state
+
+def counter_to_tuple(counter: Counter[tuple]):
+    return tuple(sorted(list(counter.elements())))
+
 class SimpleMCMCSampler:
-    def __init__(self, dist, gamma=1):
+    def __init__(self, dist: dict[tuple, int], gamma=1.0):
         self.dist = dist
         self.gamma = gamma
 
-    def get_xprime(self, counts, x_counter):
+    def get_next_state(self, counts: tuple[int], x: tuple[tuple[int]], dist=None):
+        # Make the chain lazy
+        x_counter = Counter(x)
+        if np.random.random() < 0.5:
+            return x
         # sample a random item from self.dict
-        random_item = random.choice(list(self.dist.keys()))
+        if dist is None:
+            dist = self.dist
+        random_item = random.choice(list(dist.keys()))
         d_max = 0
         cur_item = random_item
         while is_eligible(cur_item, counts):
             d_max += 1
             cur_item = tup_plus(cur_item, random_item)
         if d_max == 0:
-            return x_counter
+            return x
         d = np.random.randint(0, d_max + 1)
         xprime_counter = x_counter.copy()
         xprime_counter[random_item] = d
         if sum(xprime_counter.values()) == 0:
-            return xprime_counter
+            # empty solution
+            return counter_to_tuple(xprime_counter)
         if not is_feasible(list(xprime_counter.elements()), counts):
-            return x_counter
-        return xprime_counter
+            return x
+        return counter_to_tuple(xprime_counter)
 
-    def mcmc_solve(self, counts, num_iterations=1000):
-        current_solution = Counter()
+    def mcmc_solve(self, counts: tuple[int], num_iterations=1000):
+        current_solution = Counter() # type: Counter[tuple]
+        dist = {item: prob for item, prob in self.dist.items() if is_eligible(item, counts)}
         for i in range(num_iterations):
             x_counter = current_solution
-            xprime_counter = self.get_xprime(counts, x_counter)
+            x = counter_to_tuple(x_counter)
+            xprime_counter = Counter(self.get_next_state(counts, x, dist))
             if x_counter == xprime_counter:
                 continue
 
@@ -217,7 +267,7 @@ class SimpleMCMCSampler:
             if i>= burn_in:
                 sol_counter[tuple(sorted(current_solution.elements()))] += 1
             x_counter = current_solution
-            xprime_counter = self.get_xprime(counts, x_counter)
+            xprime_counter = Counter(self.get_next_state(counts, x_counter))
             if x_counter == xprime_counter:
                 continue
 
@@ -243,11 +293,11 @@ class SimpleMCMCSampler:
         assert all(x >= 0 for x in prob_diff)
         return sum(prob_diff)
 
-def get_sol_dist(counts, dist, num_samples=400, num_iterations=1000):
+def get_sol_dist(counts, dist, num_samples=400):
     sampler = MCMCSampler(dist, k=3)
     d = Counter()
     for _ in range(num_samples):
-        sol = sampler.mcmc_solve(counts, num_iterations=num_iterations)
+        sol = sampler.mcmc_solve(counts)
         d[tuple(sorted(sol))] += 1
     return d
 
