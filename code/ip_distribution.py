@@ -3,7 +3,7 @@ from gurobipy import GRB
 from knapsack_utils import *
 from math import log
 
-def ip_solve(counts, dist, num_solutions=50):
+def ip_solve(counts: tuple[int], dist, num_solutions=50):
     ordering = get_ordering(dist)
     constraint_mat = np.array(ordering).T
     # print(constraint_mat)
