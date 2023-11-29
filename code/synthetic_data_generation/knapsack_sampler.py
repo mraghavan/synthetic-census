@@ -1,22 +1,10 @@
 import numpy as np
-from knapsack_utils import *
 from functools import cache
 from math import log, factorial
-import psutil
+# import psutil
+from ..utils.knapsack_utils import get_ordering, is_eligible, tup_minus, tup_is_zero, exp_normalize, logsumexp, tup_times, normalize
 
-# class KnapsackSampler:
-    # def __init__(self, dist):
-        # self.dist = dist
-
-    # def solve(self, counts):
-        # # split up each type from counts
-        # all_types = {t for t in TYPES if counts[t_to_str(t)] > 0}
-        # overall_sol = tuple()
-        # for t in all_types:
-
-
-
-def knapsack_solve(counts, dist):
+def knapsack_solve(counts: tuple[int, ...], dist: dict[tuple[int, ...], float]):
 
     dist = {k: v for k, v in dist.items() if is_eligible(k, counts)}
 
@@ -27,9 +15,9 @@ def knapsack_solve(counts, dist):
     @cache
     def inner_get_log_probs(hh_count, new_counts):
         # print('sol_so_far, new_counts', sol_so_far, len(sol_so_far), '\n', new_counts)
-        if np.random.rand() < .00001:
-            print('Current memory usage', psutil.Process().memory_info().rss / (1024 * 1024), 'MB')
-            print(inner_get_log_probs.cache_info())
+        # if np.random.rand() < .00001:
+            # print('Current memory usage', psutil.Process().memory_info().rss / (1024 * 1024), 'MB')
+            # print(inner_get_log_probs.cache_info())
 
         if tup_is_zero(new_counts):
             return (), 0 # log(1)
