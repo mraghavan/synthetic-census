@@ -9,10 +9,6 @@ parser_builder = ParserBuilder({
     'state': True,
     'micro_file': True,
     'synthetic_data': True,
-    'num_sols': False,
-    'task': False,
-    'num_tasks': False,
-    'task_name': False,
     })
 
 NON_BLOCK_COLS_L = [

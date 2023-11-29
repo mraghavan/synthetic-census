@@ -1,10 +1,5 @@
 import pandas as pd
-from ..utils.config2 import ParserBuilder
-
-parser_builder = ParserBuilder({
-    'block_file': True,
-    'block_clean_file': True,
-    })
+from ..utils.census_utils import num_digits
 
 USEFUL_COLS = {
         'YEAR',
@@ -43,7 +38,7 @@ def make_identifier_non_unique(df):
     id_lens = [3, 6, 4]
     str_cols = [col + '_str' for col in ID_COLS]
     for col, l, col_s in zip(ID_COLS, id_lens, str_cols):
-        assert max(num_digits(s) for s in df[col].unique()) <= l #type: ignore
+        assert max(num_digits(s) for s in df[col].unique()) <= l
         df[col_s] = df[col].astype(str).str.zfill(l)
     df['identifier'] = df[str_cols].astype(str).agg('-'.join, axis=1)
     for col_s in str_cols:
@@ -59,11 +54,3 @@ def get_clean_block_df(fname: str):
     print(list(df.columns))
     print(len(df), 'non-empty blocks')
     return df
-
-
-if __name__ == '__main__':
-    parser_builder.parse_args()
-    print(parser_builder.args)
-    df = get_clean_block_df(parser_builder.args.block_file)
-    with open(parser_builder.args.block_clean_file, 'w') as f:
-        df.to_csv(f, index=False)

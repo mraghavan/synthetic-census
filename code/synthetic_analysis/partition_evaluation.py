@@ -9,16 +9,16 @@ from ..synthetic_data_generation.guided_solver import solve, SOLVER_PARAMS, SOLV
 from ..utils.config2 import ParserBuilder
 from ..utils.encoding import encode_hh_dist, encode_row
 
-parser_builder = ParserBuilder(
-        {'state': True,
-         'micro_file': True,
-         'block_clean_file': True,
-         'synthetic_output_dir': False,
-         'num_sols': False,
-         'task': False,
-         'num_tasks': False,
-         'task_name': False,
-         })
+parser_builder = ParserBuilder({
+    'state': True,
+    'micro_file': True,
+    'block_clean_file': True,
+    'synthetic_output_dir': False,
+    'num_sols': False,
+    'task': False,
+    'num_tasks': False,
+    'task_name': False,
+    })
 
 def read_block_data(block_clean_file: str):
     return pd.read_csv(block_clean_file)
