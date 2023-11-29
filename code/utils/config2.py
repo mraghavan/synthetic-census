@@ -6,6 +6,7 @@ class ParserBuilder():
     parser_options = {
         'state': ('', str),
         'micro_file': ('', str),
+        'block_file': ('', str),
         'block_clean_file': ('', str),
         'synthetic_output_dir': ('', str),
         'num_sols': (100, int),
@@ -15,6 +16,7 @@ class ParserBuilder():
         }
     file_paths = {
             'micro_file',
+            'block_file',
             'block_clean_file',
             'synthetic_output_dir',
             }
@@ -26,6 +28,7 @@ class ParserBuilder():
                 raise ValueError('Invalid requirement %s' % req)
             self.parser.add_argument('--' + req, default=self.parser_options[req][0], type=self.parser_options[req][1])
         self.required_args = requirements.copy()
+        self.verify_required_args()
 
     def parse_args(self):
         self.args = self.parser.parse_args()

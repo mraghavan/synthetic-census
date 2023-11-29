@@ -1,5 +1,10 @@
-from census_utils import *
+from ..utils.census_utils import has_valid_age_data
+from ..utils.config2 import ParserBuilder
 import pandas as pd
+
+parser_builder = ParserBuilder({
+    'block_clean_file': True,
+    })
 
 def validate_row(ind, row):
     err = 0
@@ -18,7 +23,9 @@ def validate_row(ind, row):
     return err
 
 if __name__ == '__main__':
-    df = pd.read_csv(get_block_out_file())
+    parser_builder.parse_args()
+    print(parser_builder.args)
+    df = pd.read_csv(parser_builder.args.block_clean_file)
     errs = 0
     for ind, row in df.iterrows():
         errs += validate_row(ind, row)

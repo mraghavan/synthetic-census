@@ -5,6 +5,8 @@ import pandas as pd
 from build_micro_dist import read_microdata
 import pickle
 import sys
+# from knapsack_sampler import knapsack_solve
+from mcmc_sampler import MCMCSampler
 # import psutil
 parser_builder = ParserBuilder(
         {'state': True,
@@ -31,7 +33,7 @@ def sample_from_sol(sol):
 if __name__ == '__main__':
     parser_builder.parse_args()
     print(parser_builder.args)
-    parser_builder.verify_required_args()
+    # parser_builder.verify_required_args()
     args = parser_builder.args
     task = args.task
     num_tasks = args.num_tasks
@@ -62,9 +64,18 @@ if __name__ == '__main__':
     hh_dist = encode_hh_dist(read_microdata(args.micro_file))
     errors = []
     output = []
+    sampler = MCMCSampler(hh_dist, k=4)
     for ind, row in df.iterrows():
         print()
         print('index', ind, 'id', row['identifier'])
+        if ind == 3:
+            sol = sampler.mcmc_solve(encode_row(row))
+            print('MCMC sol', sol)
+            # sol = knapsack_solve(encode_row(row), hh_dist)
+            # sol = tuple(hh.to_sol() for hh in sol)
+            # print('knapsack sol', sol)
+        if ind > 4:
+            break
         # print('Current memory usage', psutil.Process().memory_info().rss / (1024 * 1024), 'MB')
         identifier = str(row['identifier'])
         sol = solve(row, hh_dist)

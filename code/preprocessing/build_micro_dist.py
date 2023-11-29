@@ -1,10 +1,12 @@
-import pandas as pd
-from collections import Counter
+from collections import Counter, namedtuple
 import re
-from census_utils import *
-from knapsack_utils import *
-from collections import namedtuple
-import numpy as np
+from ..utils.census_utils import RACE_HIS_ENUM, Race, get_is_family_from_h_record, get_race_from_p_record, get_n_under_18_from_h_record, get_eth_from_p_record, get_age_from_p_record, get_weight_from_h_record
+from ..utils.knapsack_utils import normalize
+from ..utils.config2 import ParserBuilder
+parser_builder = ParserBuilder(
+        {
+            'micro_file': True,
+         })
 
 def rh_to_str(rh):
     r, h = rh
@@ -25,7 +27,7 @@ HH_tup = namedtuple('HH_tup',
 
 class Household():
     def __init__(self, is_family, n_under_18):
-        self.holder = None
+        self.holder: Person|None = None
         self.is_family = is_family
         self.people = []
         self.n_under_18 = n_under_18
@@ -68,6 +70,8 @@ class Household():
 
     @property
     def to_tuple(self):
+        if self.holder is None:
+            raise Exception('No holder for household')
         t = self.rh_counts + (self.n_over_18,) + (self.holder.race, self.holder.eth, self.is_family, min(self.size, 7))
         return HH_tup(*t)
 
@@ -80,10 +84,14 @@ class Household():
 
     @property
     def race_type(self):
+        if self.holder is None:
+            raise Exception('No holder for household')
         return (self.holder.race, self.is_family, min(self.size, 7))
 
     @property
     def eth_type(self):
+        if self.holder is None:
+            raise Exception('No holder for household')
         return (self.holder.eth, self.is_family, min(self.size, 7))
 
     @property
@@ -113,12 +121,15 @@ def read_microdata(fname):
     dist = Counter()
     with open(fname) as f:
         hh_data = None
-        weight = None
-        for i, line in enumerate(f):
+        weight = 0
+        for line in f:
             if re.match('^P', line):
                 race = get_race_from_p_record(line)
                 eth = get_eth_from_p_record(line)
                 age = get_age_from_p_record(line)
+                assert(hh_data is not None)
+                if hh_data.holder is None:
+                    raise Exception('No holder for household')
                 if hh_data.holder == None:
                     hh_data.holder = Person(race, eth, age)
                 hh_data.people.append(Person(race, eth, age))
@@ -140,11 +151,12 @@ def read_microdata_granular(fname):
         hh_data = None
         weight = None
         dist_map = {}
-        for i, line in enumerate(f):
+        for line in f:
             if re.match('^P', line):
                 race = get_race_from_p_record(line)
                 eth = get_eth_from_p_record(line)
                 age = get_age_from_p_record(line)
+                assert(hh_data is not None)
                 if hh_data.holder == None:
                     hh_data.holder = Person(race, eth, age)
                 hh_data.people.append(Person(race, eth, age))
@@ -165,9 +177,12 @@ def read_microdata_granular(fname):
         new_dist_map = {k: normalize(v) for k, v in dist_map.items()}
         return new_dist_map
 
+# TODO delete the rest of this file
 if __name__ == '__main__':
     print('Testing microdata build')
-    dist = read_microdata(get_micro_file())
+    parser_builder.parse_args()
+    print(parser_builder.args)
+    dist = read_microdata(parser_builder.args.micro_file)
     print(len(dist), 'unique HHs')
     # print(list(all_dists.keys()))
     print(dist.most_common(10))
