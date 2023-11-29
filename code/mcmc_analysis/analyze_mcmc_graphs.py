@@ -102,7 +102,6 @@ def get_solution_density(G: nx.DiGraph, gamma: float, dist: dict, reverse_sol_ma
 if __name__ == '__main__':
     parser_builder.parse_args()
     print(parser_builder.args)
-    parser_builder.verify_required_args()
     args = parser_builder.args
     #TODO larger k
     #TODO some analysis of expansion of solution set

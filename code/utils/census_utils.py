@@ -1,7 +1,7 @@
 from enum import Enum, auto
 from functools import lru_cache
 import re
-from config import *
+# from config import *
 
 class Race(Enum):
     WHITE = auto()
@@ -76,46 +76,47 @@ def get_weight_from_h_record(h_record):
     weight = int(h_record[47:49])
     return weight
 
-def get_micro_file():
-    return MICRO_FILE
+# May need this to go back to shape files
+# def get_micro_file():
+    # return MICRO_FILE
 
-def get_dist_dir():
-    return OUTPUT_DIR
+# def get_dist_dir():
+    # return OUTPUT_DIR
 
-def get_block_file():
-    return BLOCK_FILE
+# def get_block_file():
+    # return BLOCK_FILE
 
-def get_block_out_file():
-    return BLOCK_OUTPUT_FILE
+# def get_block_out_file():
+    # return BLOCK_OUTPUT_FILE
 
-def get_swapped_file(task_name=''):
-    return get_dist_dir() + task_name + 'swapped.csv'
+# def get_swapped_file(task_name=''):
+    # return get_dist_dir() + task_name + 'swapped.csv'
 
-def get_person_micro_file(task_name=''):
-    return get_dist_dir() + task_name + 'person_micro.csv'
+# def get_person_micro_file(task_name=''):
+    # return get_dist_dir() + task_name + 'person_micro.csv'
 
-def get_dp_tot_file(task_name):
-    return get_dist_dir() + task_name + 'tot_toydown.csv'
+# def get_dp_tot_file(task_name):
+    # return get_dist_dir() + task_name + 'tot_toydown.csv'
 
-def get_dp_vap_file(task_name):
-    return get_dist_dir() + task_name + 'vap_toydown.csv'
+# def get_dp_vap_file(task_name):
+    # return get_dist_dir() + task_name + 'vap_toydown.csv'
 
-def get_shape_file(area):
-    shape_dict = {
-            'BLOCK': SHAPE_FILE,
-            'BLOCK_GROUP': GROUP_SHAPE_FILE,
-            'COUNTY': COUNTY_SHAPE_FILE,
-            'TRACT': TRACT_SHAPE_FILE,
-            'UP_LEG': UP_LEG_SHAPE_FILE,
-            'LOW_LEG': LOW_LEG_SHAPE_FILE,
-            'CONG': CONG_SHAPE_FILE,
-            }
-    return shape_dict[area]
+# def get_shape_file(area):
+    # shape_dict = {
+            # 'BLOCK': SHAPE_FILE,
+            # 'BLOCK_GROUP': GROUP_SHAPE_FILE,
+            # 'COUNTY': COUNTY_SHAPE_FILE,
+            # 'TRACT': TRACT_SHAPE_FILE,
+            # 'UP_LEG': UP_LEG_SHAPE_FILE,
+            # 'LOW_LEG': LOW_LEG_SHAPE_FILE,
+            # 'CONG': CONG_SHAPE_FILE,
+            # }
+    # return shape_dict[area]
 
-get_shape_file.AREAS = ['BLOCK', 'BLOCK_GROUP', 'COUNTY', 'TRACT', 'UP_LEG', 'LOW_LEG', 'CONG']
+# get_shape_file.AREAS = ['BLOCK', 'BLOCK_GROUP', 'COUNTY', 'TRACT', 'UP_LEG', 'LOW_LEG', 'CONG']
 
-def get_synthetic_out_file(name=''):
-    return get_dist_dir() + name + 'synthetic.csv'
+# def get_synthetic_out_file(name=''):
+    # return get_dist_dir() + name + 'synthetic.csv'
 
 
 # Sample codes [H9S-H9Y]

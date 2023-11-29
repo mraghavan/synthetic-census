@@ -1,12 +1,13 @@
-from knapsack_utils import *
-from ip_distribution import ip_solve
 from math import log
 from scipy.special import comb
 from collections import Counter
 from itertools import combinations
 from functools import lru_cache
 import random
+import numpy as np
 import multiprocessing as mp
+from ..utils.knapsack_utils import perms_to_combs, counter_minus, tup_sum, prod, is_eligible, tup_minus, tup_plus, counter_minus, is_feasible, normalize
+from ..utils.ip_distribution import ip_solve
 
 MAX_SOLUTIONS = 1000
 
@@ -238,7 +239,7 @@ class SimpleMCMCSampler:
     def mcmc_solve(self, counts: tuple[int], num_iterations=1000):
         current_solution = Counter() # type: Counter[tuple]
         dist = {item: prob for item, prob in self.dist.items() if is_eligible(item, counts)}
-        for i in range(num_iterations):
+        for _ in range(num_iterations):
             x_counter = current_solution
             x = counter_to_tuple(x_counter)
             xprime_counter = Counter(self.get_next_state(counts, x, dist))
@@ -267,7 +268,8 @@ class SimpleMCMCSampler:
             if i>= burn_in:
                 sol_counter[tuple(sorted(current_solution.elements()))] += 1
             x_counter = current_solution
-            xprime_counter = Counter(self.get_next_state(counts, x_counter))
+            x = counter_to_tuple(x_counter)
+            xprime_counter = Counter(self.get_next_state(counts, x))
             if x_counter == xprime_counter:
                 continue
 

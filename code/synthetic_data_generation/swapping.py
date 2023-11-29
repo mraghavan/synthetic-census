@@ -1,4 +1,4 @@
-from census_utils import *
+from ..utils.census_utils import *
 import pandas as pd
 import geopandas as gpd
 from random import random

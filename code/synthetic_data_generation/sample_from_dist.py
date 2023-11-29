@@ -1,12 +1,22 @@
-from census_utils import *
-from build_block_df import *
-from build_micro_dist import read_microdata
 import os
 import pickle
+import re
 import numpy as np
 from collections import Counter
-from knapsack_utils import normalize
-import sys
+import pandas as pd
+from ..utils.knapsack_utils import normalize
+from ..utils.census_utils import Race
+from ..utils.config2 import ParserBuilder
+from ..preprocessing.build_micro_dist import read_microdata
+from ..preprocessing.build_block_df import make_identifier_non_unique
+
+parser_builder = ParserBuilder({
+    'micro_file': True,
+    'block_clean_file': True,
+    'synthetic_output_dir': True,
+    'synthetic_data': True,
+    'task_name': False,
+    })
 
 POP_COLS = {
         'H7X002',
@@ -78,17 +88,14 @@ def process_dist(dist):
         new_dist[tup.race_counts + (tup.eth_count, tup.n_over_18)] += prob
     return normalize(new_dist)
 
-def load_sample_and_accs(task_name):
-    dist = read_microdata(get_micro_file())
-    dist = process_dist(dist)
-    d = get_dist_dir()
+def load_sample_and_accs(task_name, dist, out_dir):
     sample = {}
     accs = {}
     errors = []
-    for fname in os.listdir(d):
+    for fname in os.listdir(out_dir):
         if re.match(task_name + '[0-9]+_[0-9]+.pkl', fname):
-            print('Reading from', d+fname)
-            with open(d + fname, 'rb') as f:
+            print('Reading from', out_dir+fname)
+            with open(out_dir + fname, 'rb') as f:
                 result_list = pickle.load(f)
                 for results in result_list:
                     breakdown = results['sol']
@@ -103,19 +110,20 @@ def add_age(hh_list, dist):
     out_list = []
     for hh in hh_list:
         eligible = [full_hh for full_hh in dist if hh == full_hh[:RECORD_LENGTH-1]]
-        probs = np.array([dist[full_hh] for full_hh in eligible])
-        probs = probs / np.sum(probs)
-        out_list.append(eligible[np.random.choice(range(len(eligible)), p=probs)])
+        probs = np.array([dist[full_hh] for full_hh in eligible], dtype='float')
+        ps = probs / np.sum(probs)
+        out_list.append(eligible[np.random.choice(range(len(eligible)), p=ps)])
     return tuple(sorted(out_list))
 
 if __name__ == '__main__':
-    if len(sys.argv) >= 2:
-        task_name = sys.argv[1] + '_'
-    else:
-        task_name = ''
-    df = pd.read_csv(get_block_out_file())
+    parser_builder.parse_args()
+    print(parser_builder.args)
+    args = parser_builder.args
+    df = pd.read_csv(args.block_clean_file)
     print(df.head())
-    sample, accs, errors = load_sample_and_accs(task_name)
+    dist = read_microdata(args.micro_file)
+    dist = process_dist(dist)
+    sample, accs, errors = load_sample_and_accs(args.task_name, dist, args.synthetic_output_dir)
     df_dict = {col: [] for col in OUTPUT_COLS}
     for ind, row in df.iterrows():
         if row['identifier'] in errors:
@@ -141,6 +149,6 @@ if __name__ == '__main__':
     make_identifier_non_unique(out_df)
     print(out_df.head())
     assert len(out_df['identifier'].unique()) == len(df['identifier'].unique())
-    with open(get_synthetic_out_file(task_name), 'w') as f:
-        print('Writing to', get_synthetic_out_file(task_name))
+    with open(args.synthetic_data, 'w') as f:
+        print('Writing to', args.get_synthetic_data)
         out_df.to_csv(f, index=False)

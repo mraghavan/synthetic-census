@@ -5,9 +5,9 @@ from toydown import GeoUnit, ToyDown
 from dask.distributed import Client
 import argparse
 import multiprocessing
-from census_utils import *
+from ..utils.census_utils import *
 from sample_from_dist import DEMO_COLS
-from build_block_df import USEFUL_COLS
+from ..preprocessing.build_block_df import USEFUL_COLS
 from hh_to_person_microdata import make_td_identifier
 from partition_blocks import read_block_data
 
