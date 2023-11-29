@@ -1,10 +1,19 @@
-from census_utils import *
-from knapsack_utils import *
 import pandas as pd
-from build_micro_dist import read_microdata
 from collections import Counter
-import sys
-import matplotlib.pyplot as plt
+from ..utils.census_utils import approx_equal, Race, RACES
+from ..utils.knapsack_utils import normalize
+from ..preprocessing.build_micro_dist import read_microdata
+from ..utils.config2 import ParserBuilder
+
+parser_builder = ParserBuilder({
+    'state': True,
+    'micro_file': True,
+    'synthetic_data': True,
+    'num_sols': False,
+    'task': False,
+    'num_tasks': False,
+    'task_name': False,
+    })
 
 NON_BLOCK_COLS_L = [
         'TOTAL',
@@ -39,7 +48,7 @@ def tvd(d1, d2):
         diff += curr_diff
     return diff/2
 
-def load_synthetic(name=''):
+def load_synthetic(name: str):
     return pd.read_csv(name)
 
 def get_block_df(df):
@@ -149,7 +158,7 @@ def test_representativeness(df, fallback_dist):
     hh_dist = Counter()
     hh_df = df[HH_COLS]
     counts = hh_df.groupby(list(hh_df.columns)).size().reset_index(name='counts')
-    for ind, row in counts.iterrows():
+    for _, row in counts.iterrows():
         hh_counts = tuple(row[HH_COLS].tolist())
         hh_dist[hh_counts] += row[-1]
     hh_dist = normalize(hh_dist)
@@ -201,12 +210,11 @@ def print_all_tex_vars(state):
             print(('\\newcommand{\\%s%s}{%.' + str(precision) + 'f}') % (state, name, value))
 
 if __name__ == '__main__':
-    # if len(sys.argv) >= 2:
-        # task_name = sys.argv[1] + '_'
-    # else:
-        # task_name = ''
-    df = load_synthetic(sys.argv[1])
-    STATE = sys.argv[2]
+    parser_builder.parse_args()
+    print(parser_builder.args)
+    args = parser_builder.args
+    df = load_synthetic(args.synthetic_data)
+    STATE = args.state
     # print(df.head())
     # print('Number of households:', len(df), file=sys.stderr)
     add_tex_var('TotalHH', len(df))
@@ -219,7 +227,7 @@ if __name__ == '__main__':
     add_tex_var('AccTwo', sum(block_df['ACCURACY'] == 2) / len(block_df) * 100)
     add_tex_var('AccThree', sum(block_df['ACCURACY'] == 3) / len(block_df) * 100)
 
-    fallback_dist = process_dist(read_microdata(get_micro_file()))
+    fallback_dist = process_dist(read_microdata(args.micro_file))
 
     tot_var_dist, size_adjusted = test_representativeness(df, fallback_dist)
     add_tex_var('TVDUnadjustedAll', tot_var_dist, precision=3)

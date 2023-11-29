@@ -9,6 +9,7 @@ class ParserBuilder():
         'block_file': ('', str),
         'block_clean_file': ('', str),
         'synthetic_output_dir': ('', str),
+        'synthetic_data': ('', str),
         'num_sols': (100, int),
         'task': (1, int),
         'num_tasks': (1, int),
@@ -19,6 +20,7 @@ class ParserBuilder():
             'block_file',
             'block_clean_file',
             'synthetic_output_dir',
+            'synthetic_data',
             }
     def __init__(self, requirements):
         self.parser = argparse.ArgumentParser()
