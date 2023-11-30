@@ -8,8 +8,6 @@ import re
 import matplotlib.pyplot as plt
 from ..utils.config2 import ParserBuilder
 from get_synthetic_stats import add_tex_var, print_all_tex_vars
-# from census_utils import *
-# from ..utils.knapsack_utils import normalize
 
 parser_builder = ParserBuilder(
         {'state': True,
@@ -27,21 +25,17 @@ def evaluate_coverage(task_name, args):
             'coverage_at_500': lambda pl, ml: sum(pl[:500]),
             'sorted_coverage_at_500': lambda pl, ml: sum(sorted(pl, reverse=True)[:500]),
             })
-    # for i in np.linspace(50, args.num_sols, 50):
-        # funcs['coverage_at_' + str(int(i))] = lambda pl, ml: sum(pl[:i])
     d = args.synthetic_output_dir
     big_results_df = pd.DataFrame(columns=list(funcs.keys()))
     unsorted_probs = np.zeros((args.num_sols,))
     sorted_probs = np.zeros((args.num_sols,))
     for fname in os.listdir(d):
-        # TODO: remove the 1 later
         if re.match(task_name + '[0-9]+_[0-9]+.pkl', fname):
             print('Reading from', d+fname, file=sys.stderr)
             with open(d + fname, 'rb') as f:
                 result_list = pickle.load(f)
                 # Dataframe with dimensions (len(funcs), len(result_list)) with columns given by the keys in funcs filled with zeros
                 results_df = pd.DataFrame(np.zeros((len(result_list), len(funcs))), columns=list(funcs.keys()))
-                # print(results_df.shape, file=sys.stderr)
                 for i, results in enumerate(result_list):
                     results_df.loc[i] = [f(results['prob_list'], args.num_sols) for f in funcs.values()]
                     if len(results['prob_list']) == args.num_sols:
@@ -49,13 +43,6 @@ def evaluate_coverage(task_name, args):
                         sorted_probs += sorted(results['prob_list'], reverse=True)
             big_results_df = pd.concat([big_results_df, results_df], ignore_index=True)
     return big_results_df, unsorted_probs, sorted_probs
-
-def fit_pl(solution_counts):
-    solution_counts = sorted(solution_counts)
-    # create a list of tuples (x, y) where x is the number of solutions and y is the number of blocks with at least that many solutions
-    # TODO
-
-
 
 def to_cumulative(probs):
     new_probs = [0] * len(probs)
@@ -74,11 +61,8 @@ if __name__ == '__main__':
     if task_name != '':
         task_name += '_'
     results_df, unsorted_probs, sorted_probs = evaluate_coverage(task_name, args)
-    # print(results_df, file=sys.stderr)
     print(results_df.describe(), file=sys.stderr)
     solution_counts = results_df['total_solutions'].values
-    fit_pl(solution_counts)
-    # weights = np.ones(len(results_df)) / len(results_df)
     results_df['total_solutions'].hist()
     plt.xlabel('Number of solutions')
     plt.savefig(task_name + 'total_solutions.png')

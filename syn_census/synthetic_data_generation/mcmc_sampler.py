@@ -106,7 +106,7 @@ class MCMCSampler:
     def get_sampling_num(self, x_counter, removal_counter):
         return prod([comb(x_counter[a], removal_counter[a]) for a in removal_counter])
 
-    def generate_random_removal(self, x: tuple[tuple[int]]):
+    def generate_random_removal(self, x: tuple[tuple[int, ...], ...]):
         # remove k elements at random
         remove_indices = np.random.choice(len(x), self.k, replace=False)
         # y = tuple(a for i, a in enumerate(x) if i not in remove_indices)
@@ -116,7 +116,7 @@ class MCMCSampler:
         else:
             return None
 
-    def mcmc_solve(self, counts: tuple[int]):
+    def mcmc_solve(self, counts: tuple[int, ...]):
         # get initial solution using ip_solve
         current_solution = ip_solve(counts, self.dist, num_solutions=1)[0]
         # print('Initial solution:', current_solution)

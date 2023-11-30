@@ -26,6 +26,7 @@ def generate_data(
         task: int,
         num_tasks: int,
         task_name: str = '',
+        include_probs: bool = False,
         ):
     if task_name != '':
         task_name = task_name + '_'
@@ -67,12 +68,15 @@ def generate_data(
             errors.append(ind)
         print('SOLVER LEVEL', SOLVER_RESULTS.level, 'USED AGE', SOLVER_RESULTS.use_age, 'STATUS', SOLVER_RESULTS.status)
         if len(sol) > 0:
-            output.append({
+            d = {
                     'id': identifier,
                     'sol': chosen,
                     'level': SOLVER_RESULTS.level,
                     'complete': SOLVER_RESULTS.status == SolverResults.OK,
                     'age': SOLVER_RESULTS.use_age,
                     'types': chosen_types,
-                    })
+                    }
+            if include_probs:
+                d['prob_list'] = list(sol.values())
+            output.append(d)
     return(output, errors)

@@ -15,6 +15,7 @@ class ParserBuilder():
         'task': (1, int),
         'num_tasks': (1, int),
         'task_name': ('', str),
+        'include_probs': (False, bool),
         }
     file_paths = {
             'micro_file',

@@ -13,6 +13,7 @@ parser_builder = ParserBuilder({
     'task': False,
     'num_tasks': False,
     'task_name': False,
+    'include_probs': False,
     })
 
     # out_file = synthetic_output_dir + task_name + '%d_%d.pkl' % (task, num_tasks)
@@ -32,7 +33,7 @@ if __name__ == '__main__':
         print(out_file, 'already exists')
         sys.exit(0)
 
-    output, errors = generate_data(args.state, args.micro_file, args.block_clean_file, args.num_sols, task, num_tasks)
+    output, errors = generate_data(args.state, args.micro_file, args.block_clean_file, args.num_sols, task, num_tasks, args.include_probs)
 
     print('errors', errors, file=sys.stderr)
     print('Writing to', out_file)
