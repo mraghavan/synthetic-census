@@ -11,6 +11,7 @@ class ParserBuilder():
         'block_clean_file': ('', str),
         'synthetic_output_dir': ('', str),
         'synthetic_data': ('', str),
+        'mcmc_output_dir': ('', str),
         'num_sols': (100, int),
         'task': (1, int),
         'num_tasks': (1, int),
@@ -24,6 +25,7 @@ class ParserBuilder():
             'block_clean_file',
             'synthetic_output_dir',
             'synthetic_data',
+            'mcmc_output_dir',
             }
     def __init__(self, requirements):
         self.parser = argparse.ArgumentParser()
