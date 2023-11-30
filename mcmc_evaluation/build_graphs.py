@@ -39,8 +39,8 @@ if __name__ == '__main__':
     sol_map = {v: i for i, v in enumerate(sol)}
     sol_map_copy = sol_map.copy()
 
-    gammas = [0, 0.1, 0.2, 0.5, 1]
-    ks = [2, 3]
+    gammas = [0, 0.1, 0.2, 0.5, 0.7, 1]
+    ks = [2, 3, 4]
 
     graphs_to_build = {f'simple_{gamma}': (lambda param=gamma: build_graph_simple(dist, counts, SimpleMCMCSampler(simple_dist, gamma=param), total_solutions=len(sol))) for gamma in gammas}
     graphs_to_build.update({f'k_{k}': (lambda param=k: build_graph(dist, sol, sol_map_copy, k=param)) for k in ks})
