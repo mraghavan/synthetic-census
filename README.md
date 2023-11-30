@@ -97,6 +97,7 @@ First, modify `shard_generation.sh`, which looks like this:
 
 https://github.com/mraghavan/synthetic-census/blob/098f944d6b803be40c82daa48f4655ee1826968e/shard_generation.sh
 
+Change the partition parameter to one that is valid for your cluster.
 Make sure you change `out_files` to a directory where you want text logs to go (and make sure that directory exists).
 You may also need to load appropriate python modules (including `gurobipy`).
 Depending on the size of the state, you may need to modify the resources allocated to each job (increase compute time, memory, etc.).
@@ -105,6 +106,7 @@ Then, modify `shard_aggregation.py`, which looks like this:
 
 https://github.com/mraghavan/synthetic-census/blob/refactor/shard_aggregation.sh
 
+Change the partition parameter to one that is valid for your cluster.
 Again, make sure the text logs go to a valid directory and that appropriate modules are loaded if necessary.
 The reduce phase is probably computationally light enough to run locally, but you'd have to copy over all the `.pkl` files produced by the map phase to do this.
 
