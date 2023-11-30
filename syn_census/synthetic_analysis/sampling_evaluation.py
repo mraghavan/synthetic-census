@@ -6,17 +6,10 @@ import sys
 import pandas as pd
 import re
 import matplotlib.pyplot as plt
-from ..utils.config2 import ParserBuilder
-from get_synthetic_stats import add_tex_var, print_all_tex_vars
+# from ..utils.config2 import ParserBuilder
+from .representativeness import add_tex_var, print_all_tex_vars
 
-parser_builder = ParserBuilder(
-        {'state': True,
-         'synthetic_output_dir': False,
-         'num_sols': True,
-         'task_name': False,
-         })
-
-def evaluate_coverage(task_name, args):
+def evaluate_coverage(task_name: str, synthetic_output_dir: str, num_sols: int):
     funcs = OrderedDict({
             'total_solutions': lambda pl, ml: len(pl),
             'last_mass': lambda pl, ml: pl[-1],
@@ -25,10 +18,10 @@ def evaluate_coverage(task_name, args):
             'coverage_at_500': lambda pl, ml: sum(pl[:500]),
             'sorted_coverage_at_500': lambda pl, ml: sum(sorted(pl, reverse=True)[:500]),
             })
-    d = args.synthetic_output_dir
+    d = synthetic_output_dir
     big_results_df = pd.DataFrame(columns=list(funcs.keys()))
-    unsorted_probs = np.zeros((args.num_sols,))
-    sorted_probs = np.zeros((args.num_sols,))
+    unsorted_probs = np.zeros((num_sols,))
+    sorted_probs = np.zeros((num_sols,))
     for fname in os.listdir(d):
         if re.match(task_name + '[0-9]+_[0-9]+.pkl', fname):
             print('Reading from', d+fname, file=sys.stderr)
@@ -37,8 +30,8 @@ def evaluate_coverage(task_name, args):
                 # Dataframe with dimensions (len(funcs), len(result_list)) with columns given by the keys in funcs filled with zeros
                 results_df = pd.DataFrame(np.zeros((len(result_list), len(funcs))), columns=list(funcs.keys()))
                 for i, results in enumerate(result_list):
-                    results_df.loc[i] = [f(results['prob_list'], args.num_sols) for f in funcs.values()]
-                    if len(results['prob_list']) == args.num_sols:
+                    results_df.loc[i] = [f(results['prob_list'], num_sols) for f in funcs.values()]
+                    if len(results['prob_list']) == num_sols:
                         unsorted_probs += results['prob_list']
                         sorted_probs += sorted(results['prob_list'], reverse=True)
             big_results_df = pd.concat([big_results_df, results_df], ignore_index=True)
@@ -51,16 +44,16 @@ def to_cumulative(probs):
         new_probs[i] = new_probs[i-1] + probs[i]
     return new_probs
 
-STATE = ''
-if __name__ == '__main__':
-    parser_builder.parse_args()
-    args = parser_builder.args
-    STATE = args.state.upper()
-    parser_builder.verify_required_args()
-    task_name = args.task_name
+def print_results(
+        state: str,
+        synthetic_output_dir: str,
+        num_sols: int,
+        task_name: str=''):
+    state = state.upper()
+    task_name = task_name
     if task_name != '':
         task_name += '_'
-    results_df, unsorted_probs, sorted_probs = evaluate_coverage(task_name, args)
+    results_df, unsorted_probs, sorted_probs = evaluate_coverage(task_name, synthetic_output_dir, num_sols)
     print(results_df.describe(), file=sys.stderr)
     solution_counts = results_df['total_solutions'].values
     results_df['total_solutions'].hist()
@@ -69,17 +62,17 @@ if __name__ == '__main__':
     plt.clf()
     # Count the number of rows where total_solutions < num_sols
 
-    add_tex_var('NumSolutions', args.num_sols)
+    add_tex_var('NumSolutions', num_sols)
     num_blocks = results_df.shape[0]
 
     add_tex_var('NumBlocks', num_blocks)
-    fully_solved = int((results_df['total_solutions'] < args.num_sols).sum())
+    fully_solved = int((results_df['total_solutions'] < num_sols).sum())
     add_tex_var('Coverage', fully_solved)
     add_tex_var('CoveragePercent', fully_solved / num_blocks * 100, precision=2)
 
-    avg_last_mass = results_df[results_df['total_solutions'] == args.num_sols]['last_50_mass'].mean()
+    avg_last_mass = results_df[results_df['total_solutions'] == num_sols]['last_50_mass'].mean()
     add_tex_var('AvgLastMass', avg_last_mass*100, precision=2)
-    unfinished_df = results_df[results_df['total_solutions'] == args.num_sols]
+    unfinished_df = results_df[results_df['total_solutions'] == num_sols]
     diff = unfinished_df['sorted_coverage_at_500'] - unfinished_df['coverage_at_500']
     add_tex_var('AvgDiff', diff.mean()*100, precision=2)
     unsorted_probs = to_cumulative(unsorted_probs/len(unfinished_df))
@@ -90,4 +83,4 @@ if __name__ == '__main__':
     plt.ylabel('Cumulative probability')
     plt.savefig(task_name + 'cumulative_probs.png')
     
-    print_all_tex_vars(STATE)
+    print_all_tex_vars(state)

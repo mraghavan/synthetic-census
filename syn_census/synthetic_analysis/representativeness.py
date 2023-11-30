@@ -205,12 +205,12 @@ def print_all_tex_vars(state):
         else:
             print(('\\newcommand{\\%s%s}{%.' + str(precision) + 'f}') % (state, name, value))
 
-if __name__ == '__main__':
-    parser_builder.parse_args()
-    print(parser_builder.args)
-    args = parser_builder.args
-    df = load_synthetic(args.synthetic_data)
-    STATE = args.state
+def print_results(
+        state: str,
+        synthetic_data: str,
+        micro_file: str
+        ):
+    df = load_synthetic(synthetic_data)
     # print(df.head())
     # print('Number of households:', len(df), file=sys.stderr)
     add_tex_var('TotalHH', len(df))
@@ -223,7 +223,7 @@ if __name__ == '__main__':
     add_tex_var('AccTwo', sum(block_df['ACCURACY'] == 2) / len(block_df) * 100)
     add_tex_var('AccThree', sum(block_df['ACCURACY'] == 3) / len(block_df) * 100)
 
-    fallback_dist = process_dist(read_microdata(args.micro_file))
+    fallback_dist = process_dist(read_microdata(micro_file))
 
     tot_var_dist, size_adjusted = test_representativeness(df, fallback_dist)
     add_tex_var('TVDUnadjustedAll', tot_var_dist, precision=3)
@@ -233,4 +233,4 @@ if __name__ == '__main__':
     add_tex_var('TVDUnadjustedAccOne', tot_var_dist, precision=3)
     add_tex_var('TVDAdjustedAccOne', size_adjusted, precision=3)
 
-    print_all_tex_vars(STATE)
+    print_all_tex_vars(state)
