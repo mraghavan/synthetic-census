@@ -35,7 +35,6 @@ Create a parameters file like the one below:
     "micro_file": "$HOME/Desktop/census_data/AL/al.2010.pums.01.txt",
     "block_file": "$HOME/Desktop/census_data/AL/block_data.csv",
     "block_clean_file": "$HOME/Desktop/census_data/AL/block_data_cleaned.csv",
-    "synthetic_data": "$HOME/Desktop/census_data/output/AL/21877344_synthetic.csv",
     "synthetic_output_dir": "$HOME/Desktop/census_data/output/AL/",
     "num_sols": 1000
 }
