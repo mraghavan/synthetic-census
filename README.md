@@ -6,7 +6,7 @@
   - [numpy](https://numpy.org/)
   - [scipy](https://scipy.org/)
   - [pandas](https://pandas.pydata.org/)
-  - [geopandas](https://geopandas.org/en/stable/) (for swapping)
+  <!--- [geopandas](https://geopandas.org/en/stable/) (for swapping)-->
   - [Gurobi](https://www.gurobi.com/), with a valid license and the python package `gurobipy` installed (`python3 -m pip install gurobipy`)
 
 ## Getting the data
@@ -22,92 +22,100 @@ We'll need a combination of data from NHGIS and PUMS from the census. For a part
   7. SUBMIT
 
 ## Basic setup
-Create a file called `params.json` in the `code/` directory.
-The input data will need to be in `[data]/[state]`, and the output will be written to `[output]/[state]`.
-`num_sols` specifies the maximum number of soluions to be returned for a block.
-`write` controls whether output files will be written.
-Make sure you set `write` to 1 before you run.
-Here's a sample:
+Create a parameters file like the one below:
+<!--Create a file called `params.json` in the `code/` directory.-->
+<!--The input data will need to be in `[data]/[state]`, and the output will be written to `[output]/[state]`.-->
+<!--`num_sols` specifies the maximum number of soluions to be returned for a block.-->
+<!--`write` controls whether output files will be written.-->
+<!--Make sure you set `write` to 1 before you run.-->
+<!--Here's a sample:-->
 ```
 {
-    "state": "VT",
-    "data": "$HOME/Desktop/census_data/",
-    "output": "$HOME/Desktop/census_data/output/",
-    "num_sols": 100,
-    "write": 0
+    "state": "AL",
+    "micro_file": "$HOME/Desktop/census_data/AL/al.2010.pums.01.txt",
+    "block_file": "$HOME/Desktop/census_data/AL/block_data.csv",
+    "block_clean_file": "$HOME/Desktop/census_data/AL/block_data_cleaned.csv",
+    "synthetic_data": "$HOME/Desktop/census_data/output/AL/21877344_synthetic.csv",
+    "synthetic_output_dir": "$HOME/Desktop/census_data/output/AL/",
+    "num_sols": 1000
 }
-
 ```
+Call it something like `AL_params.json`.
+Put it in the `synthetic-census` directory.
+We'll refer to these parameters throughout these instructions.
 
 ## Storing the data
-Put the data in the directory `[data]/[state]`, e.g., `$HOME/Desktop/census_data/VT`.
 The NHGIS file you downloaded should be `nhgisxxxx_csv.zip`.
 Unzip it.
-Rename the csv file it contains to `[data]/[state]/block_data.csv`.
-
-Verify that the data files are in the right place by running `python3 config.py`.
+Rename it `[block_file]` (in our case `$HOME/Desktop/census_data/AL/block_data.csv`).
 
 ## Pre-processing the data
-We'll need to build both the microdata distribution and the block-level dataframe.
-
-To test building the microdata distribution, run `python3 build_micro_dist.py` (optional).
-
-To build the block-level dataframe, run `python3 build_block_df.py` (required). This will create the file `[data]/[state]/block_data_cleaned.csv`.
+Preprocess the block-level dataframe with
+```
+python3 preprocess.py --from_params [params_file]
+```
+This will create the file `[block_clean_file]`.
 Computationally, this is fairly light and can be run locally.
 
 ## Building the distribution
 Make sure you've fulfilled the [requirements](#requirements).
-Run `python3 partition_blocks.py` (if running locally).
-This will create `.pkl` file in `[output]/[state]/`.
-To parallelize, run `python3 partition_blocks.py [i] [total]` for `i` in `1..total` on separate threads/machines (see below for `slurm` usage).
-If given a third argument [name], files will be named `[name]_[i]_[total].pkl`.
-Otherwise, they will be named `[i]_[total].pkl`
-To turn the `.pkl` files into a dataset, run `python3 sample_from_dist.py [name]`.
+We use a map-reduce structure here.
+The map stage is done by `generate_data_shard.py`, and the reduce stage is done by `aggregate_data_shards.py`.
+You will likely need to use a computing cluster for this.
+For a medium-sized state, it will require tens of hours of compute time.
 
-## Running on the RC cluster with `slurm`
-If using `slurm`, run `./generate_dataset.sh`.
-This will use a map-reduce-style approach to generate a single dataset, which will be written to `[output]/[state]/[job_id]_synthetic.csv`, where `job_id` is the first line of the script's output.
-Make sure the directory `code/out_files` exists before running.
+### Running the map stage
+Choose a label `[task_name]` (e.g., `AL`).
+This must be admissible in a file name.
+Choose a number `n` for the number of separate jobs to run.
+For a medium-sized state, `n=50` is reasonable.
+For `i` from 1 through `n`, run 
+```
+python3 generate_data_shard.py --from_params [params_file] --task i --num_tasks n --task_name [task_name]
+```
+This will generate the data shard `[synthetic_output_dir]/[task_name]_[i]_[n].pkl`.
 
-### Map
-The map phase is done by `sbatch runscript.sh`, which should look something like
+<!--Run `python3 partition_blocks.py` (if running locally).-->
+<!--This will create `.pkl` file in `[output]/[state]/`.-->
+<!--To parallelize, run `python3 partition_blocks.py [i] [total]` for `i` in `1..total` on separate threads/machines (see below for `slurm` usage).-->
+<!--If given a third argument [name], files will be named `[name]_[i]_[total].pkl`.-->
+<!--Otherwise, they will be named `[i]_[total].pkl`-->
+<!--To turn the `.pkl` files into a dataset, run `python3 sample_from_dist.py [name]`.-->
+### Running the reduce stage
+Once all of the data shards have been generated, run
 ```
-#!/bin/bash
-#SBATCH -c 4                # Number of cores (-c)
-#SBATCH -t 0-0:15          # Runtime in D-HH:MM, minimum of 10 minutes
-#SBATCH -p serial_requeue   # Partition to submit to
-#SBATCH --mem=5000           # Memory pool for all cores (see also --mem-per-cpu)
-#SBATCH -o out_files/census.%A_%a.out  # File to which STDOUT will be written, %j inserts jobid
-#SBATCH -e out_files/census.%A_%a.err  # File to which STDERR will be written, %j inserts jobid
-#SBATCH --array=1-50
-#SBATCH --mail-type=END
-module load python/3.8.5-fasrc01
-module load gurobi/9.0.2-fasrc01
-python3 -m pip install gurobipy
-python3 partition_blocks.py $SLURM_ARRAY_TASK_ID $SLURM_ARRAY_TASK_COUNT $SLURM_ARRAY_JOB_ID
+python3 aggregate_data_shards.py --from_params [params_file] --task_name [task_name]
 ```
-This divides the blocks into a number of jobs (in this case 50) and, for each block, samples a household.
-The results, along with the quality of the solution found, are written to `[output]/[state]/[job_id]_[i]_[total].pkl`.
-The requirements are reasonably well-calibrated for Vermont, which contains 17,541 non-empty census blocks (takes at most 7 minutes per job).
-Scale the number of parralel jobs (`#SBATCH --array=1-{num}`) appropriately.
-To prevent too many from running at the same time, use `#SBATCH --array=1-{num}%{max}` where `max` is the maximum number of jobs to run at a time.
-Gurobi can use multiple cores, which is why I've set the number of cores to 4. I haven't experimented with increasing/decreasing this.
+This will generate the file `[synthetic_output_dir]/[task_name]_synthetic.csv`.
 
-### Reduce
-The reduce phase is done by `sbatch sample_script.sh [job_id]`, where `[job_id]` should be the id of the map phase. `sample_script.sh` should look like
+## Running on a cluster with `slurm`
+
+**Important:** If you want to run things on a cluster, make sure you follow the above instructions to put data in the correct directories.
+You will need to modify your `[params_file]` to inclue the appropriate file paths for your cluster.
+
+If using `slurm`, you can modify the following files to generate a dataset.
+First, modify `shard_generation.sh`, which looks like this:
+https://github.com/mraghavan/synthetic-census/blob/refactor/shard_generation.sh
+
+Make sure you change `out_files` to a directory where you want text logs to go (and make sure that directory exists).
+You may also need to load appropriate python modules (including `gurobipy`).
+Depending on the size of the state, you may need to modify the resources allocated to each job (increase compute time, memory, etc.).
+
+Then, modify `shard_aggregation.py`, which looks like this:
+https://github.com/mraghavan/synthetic-census/blob/refactor/shard_aggregation.sh
+
+Again, make sure the text logs go to a valid directory and that appropriate modules are loaded if necessary.
+The reduce phase is probably computationally light enough to run locally, but you'd have to copy over all the `.pkl` files produced by the map phase to do this.
+
+When this is done, you can run
 ```
-#!/bin/bash
-#SBATCH -c 1                # Number of cores (-c)
-#SBATCH -t 0-0:15          # Runtime in D-HH:MM, minimum of 10 minutes
-#SBATCH -p serial_requeue   # Partition to submit to
-#SBATCH --mem=1000           # Memory pool for all cores (see also --mem-per-cpu)
-#SBATCH -o out_files/samp.%j.out  # File to which STDOUT will be written, %j inserts jobid
-#SBATCH -e out_files/samp.%j.err  # File to which STDERR will be written, %j inserts jobid
-#SBATCH --mail-type=END
-module load python/3.8.5-fasrc01
-python3 sample_from_dist.py $1
+./generate_dataset.sh [task_name]
 ```
-This will write the sampled dataset in the file `[output]/[state]/[job_id]_synthetic.csv`, where each row is a sampled household. This should run fairly quickly (~20 seconds for VT).
+
+This will set up both the map and reduce jobs and produce the dataset `[synthetic_output_dir]/[task_name]_synthetic.csv`.
+<!--This will use a map-reduce-style approach to generate a single dataset, which will be written to `[output]/[state]/[job_id]_synthetic.csv`, where `job_id` is the first line of the script's output.-->
+<!--Make sure the directory `code/out_files` exists before running.-->
+
 
 # Data schema
 Each row in the synthetic dataset corresponds to a single household.
