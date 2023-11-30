@@ -2,19 +2,16 @@ import pandas as pd
 from itertools import combinations
 from collections import Counter
 import networkx as nx
-import matplotlib.pyplot as plt
-import pickle
-import os
 from scipy.special import comb
 from scipy.linalg import eig
 import numpy as np
 from ..utils.config2 import ParserBuilder
-from ..synthetic_data_generation.mcmc_sampler import get_log_prob, MCMCSampler, SimpleMCMCSampler
-from ..utils.knapsack_utils import tup_sum, tup_minus, normalize, is_eligible, tup_plus, is_feasible
+from ..synthetic_data_generation.mcmc_sampler import get_log_prob, SimpleMCMCSampler
+from ..utils.knapsack_utils import tup_sum, tup_minus, is_eligible, tup_plus, is_feasible
 from ..utils.census_utils import approx_equal
 from ..utils.ip_distribution import ip_solve
-from ..utils.encoding import encode_hh_dist, encode_row
-from ..preprocessing.build_micro_dist import read_microdata
+# from ..utils.encoding import encode_hh_dist, encode_row
+# from ..preprocessing.build_micro_dist import read_microdata
 
 parser_builder = ParserBuilder(
         {'state': True,
@@ -67,7 +64,9 @@ def build_graph(dist: dict, sol: tuple|list, sol_map: dict, k: int):
     graph = {}
     for s in sol:
         graph[sol_map[s]] = get_neighbors(dist, s, sol_map, k)
-        print(sol_map[s], graph[sol_map[s]])
+        if sol_map[s] % 10 == 0:
+            print(sol_map[s])
+        # print(sol_map[s], graph[sol_map[s]])
         # print('len', len(sol_map))
     return graph, sol_map
 
@@ -179,43 +178,43 @@ def get_tvd_at_iterations(P: np.ndarray, t: int):
     # print(sum(v_t))
     return np.sum(np.abs(v_t - pi))/2
 
-if __name__ == '__main__':
-    parser_builder.parse_args()
-    print(parser_builder.args)
-    parser_builder.verify_required_args()
-    args = parser_builder.args
-    #TODO larger k
-    #TODO some analysis of expansion of solution set
-    # TODO modify SimpleMCMCSampler to incorporate probabilities and gamma
+# if __name__ == '__main__':
+    # parser_builder.parse_args()
+    # print(parser_builder.args)
+    # parser_builder.verify_required_args()
+    # args = parser_builder.args
+    # #TODO larger k
+    # #TODO some analysis of expansion of solution set
+    # # TODO modify SimpleMCMCSampler to incorporate probabilities and gamma
 
 
-    graph = None
-    fname = '{}_graph.pkl'
-    df = read_block_data(args.block_clean_file)
-    # non-empty rows
-    df = df[df['H7X001'] > 0]
-    print(df.head())
-    dist = encode_hh_dist(read_microdata(args.micro_file))
-    test_row = 3
-    row = df.iloc[test_row]
-    counts = encode_row(row)
-    simple_dist = {k: v for k, v in dist.items() if is_eligible(k, counts)}
-    sol = ip_solve(counts, dist, num_solutions=args.num_sols)
-    sol_map = {v: i for i, v in enumerate(sol)}
-    sol_map_copy = sol_map.copy()
+    # graph = None
+    # fname = '{}_graph.pkl'
+    # df = read_block_data(args.block_clean_file)
+    # # non-empty rows
+    # df = df[df['H7X001'] > 0]
+    # print(df.head())
+    # dist = encode_hh_dist(read_microdata(args.micro_file))
+    # test_row = 3
+    # row = df.iloc[test_row]
+    # counts = encode_row(row)
+    # simple_dist = {k: v for k, v in dist.items() if is_eligible(k, counts)}
+    # sol = ip_solve(counts, dist, num_solutions=args.num_sols)
+    # sol_map = {v: i for i, v in enumerate(sol)}
+    # sol_map_copy = sol_map.copy()
 
-    gammas = [0, 0.1, 0.2, 0.5, 1]
-    ks = [2, 3]
+    # gammas = [0, 0.1, 0.2, 0.5, 1]
+    # ks = [2, 3]
 
-    graphs_to_build = {f'simple_{gamma}': (lambda param=gamma: build_graph_simple(dist, counts, SimpleMCMCSampler(simple_dist, gamma=param), total_solutions=len(sol))) for gamma in gammas}
-    graphs_to_build.update({f'k_{k}': (lambda param=k: build_graph(dist, sol, sol_map_copy, k=param)) for k in ks})
+    # graphs_to_build = {f'simple_{gamma}': (lambda param=gamma: build_graph_simple(dist, counts, SimpleMCMCSampler(simple_dist, gamma=param), total_solutions=len(sol))) for gamma in gammas}
+    # graphs_to_build.update({f'k_{k}': (lambda param=k: build_graph(dist, sol, sol_map_copy, k=param)) for k in ks})
 
-    for g, func in graphs_to_build.items():
-        if not os.path.exists(fname.format(g)):
-            print('Building graph', g)
-            graph = func()
-            with open(fname.format(g), 'wb') as f:
-                pickle.dump(graph, f)
+    # for g, func in graphs_to_build.items():
+        # if not os.path.exists(fname.format(g)):
+            # print('Building graph', g)
+            # graph = func()
+            # with open(fname.format(g), 'wb') as f:
+                # pickle.dump(graph, f)
     
     # graph, sol_map, reverse_sol_map = build_graph_simple(dist, counts, total_solutions=len(sol))
     # print('total number of nodes', len(graph))
