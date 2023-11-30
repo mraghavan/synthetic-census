@@ -25,16 +25,8 @@ def generate_data(
         num_sols: int,
         task: int,
         num_tasks: int,
-        task_name: str = '',
         include_probs: bool = False,
         ):
-    if task_name != '':
-        task_name = task_name + '_'
-    else:
-        task_name = ''
-    if os.path.exists(out_file):
-        print(out_file, 'already exists')
-        sys.exit(0)
     SOLVER_PARAMS.num_sols = num_sols
 
     df = read_block_data(block_clean_file)

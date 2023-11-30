@@ -33,7 +33,7 @@ if __name__ == '__main__':
         print(out_file, 'already exists')
         sys.exit(0)
 
-    output, errors = generate_data(args.state, args.micro_file, args.block_clean_file, args.num_sols, task, num_tasks, args.include_probs)
+    output, errors = generate_data(args.state, args.micro_file, args.block_clean_file, args.num_sols, task, num_tasks, include_probs=args.include_probs)
 
     print('errors', errors, file=sys.stderr)
     print('Writing to', out_file)
