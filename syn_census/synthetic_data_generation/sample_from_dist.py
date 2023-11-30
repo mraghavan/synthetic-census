@@ -115,19 +115,17 @@ def add_age(hh_list, dist):
         out_list.append(eligible[np.random.choice(range(len(eligible)), p=ps)])
     return tuple(sorted(out_list))
 
-if __name__ == '__main__':
-    parser_builder.parse_args()
-    print(parser_builder.args)
-    args = parser_builder.args
-    df = pd.read_csv(args.block_clean_file)
+def aggregate_shards(
+        micro_file: str,
+        block_clean_file: str,
+        synthetic_output_dir: str,
+        task_name: str,
+        ):
+    df = pd.read_csv(block_clean_file)
     print(df.head())
-    dist = read_microdata(args.micro_file)
+    dist = read_microdata(micro_file)
     dist = process_dist(dist)
-    if args.task_name != '':
-        task_name = args.task_name + '_'
-    else:
-        task_name = ''
-    sample, accs, errors = load_sample_and_accs(task_name, dist, args.synthetic_output_dir)
+    sample, accs, errors = load_sample_and_accs(task_name, dist, synthetic_output_dir)
     df_dict = {col: [] for col in OUTPUT_COLS}
     for ind, row in df.iterrows():
         if row['identifier'] in errors:
@@ -136,6 +134,7 @@ if __name__ == '__main__':
         try:
             breakdown = sample[row['identifier']]
         except:
+            # TODO fail loudly
             continue
         r_list = [row[x] for x in df.columns if x in CARRYOVER]
         try:
@@ -152,7 +151,5 @@ if __name__ == '__main__':
     out_df.rename(columns=SHORT_RN, inplace=True)
     make_identifier_non_unique(out_df)
     print(out_df.head())
-    assert len(out_df['identifier'].unique()) == len(df['identifier'].unique())
-    with open(args.synthetic_data, 'w') as f:
-        print('Writing to', args.get_synthetic_data)
-        out_df.to_csv(f, index=False)
+    assert len(out_df['identifier'].unique()) == len(df['identifier'].unique()), 'Not all blocks found'
+    return out_df
