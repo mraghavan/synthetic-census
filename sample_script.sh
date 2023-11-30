@@ -8,4 +8,4 @@
 #SBATCH --mail-type=END
 module load python/3.8.5-fasrc01
 echo Reading from job $1
-python3 sample_from_dist.py $1 && python3 cleanup.py $1
+python3 aggregate_data_shards --from_params AL_params.json --task_name $1
