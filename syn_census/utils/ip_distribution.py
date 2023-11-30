@@ -4,7 +4,7 @@ from gurobipy import GRB
 from math import log
 from .knapsack_utils import get_ordering, normalize
 
-def ip_solve(counts: tuple[int, ...], dist, num_solutions=50):
+def ip_solve(counts: tuple, dist, num_solutions=50):
     ordering = get_ordering(dist)
     constraint_mat = np.array(ordering).T
     # print(constraint_mat)

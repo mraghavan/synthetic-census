@@ -1,22 +1,20 @@
-from config2 import ParserBuilder
 import pandas as pd
-from build_micro_dist import read_microdata
-from encoding import encode_hh_dist, encode_row
-from ip_distribution import ip_solve
 from itertools import combinations
 from collections import Counter
-from knapsack_utils import tup_sum, tup_minus, normalize, is_eligible, tup_plus, is_feasible
-from census_utils import approx_equal
 import networkx as nx
 import matplotlib.pyplot as plt
 import pickle
 import os
 from scipy.special import comb
 from scipy.linalg import eig
-from mcmc_sampler import get_log_prob, MCMCSampler, SimpleMCMCSampler
 import numpy as np
-from guided_solver import recompute_probs
-from math import ceil
+from ..utils.config2 import ParserBuilder
+from ..synthetic_data_generation.mcmc_sampler import get_log_prob, MCMCSampler, SimpleMCMCSampler
+from ..utils.knapsack_utils import tup_sum, tup_minus, normalize, is_eligible, tup_plus, is_feasible
+from ..utils.census_utils import approx_equal
+from ..utils.ip_distribution import ip_solve
+from ..utils.encoding import encode_hh_dist, encode_row
+from ..preprocessing.build_micro_dist import read_microdata
 
 parser_builder = ParserBuilder(
         {'state': True,
@@ -29,7 +27,7 @@ parser_builder = ParserBuilder(
 def read_block_data(block_clean_file: str):
     return pd.read_csv(block_clean_file)
 
-def get_neighbors(dist: dict, s: tuple, sol_map: dict[tuple, int], k: int):
+def get_neighbors(dist: dict, s: tuple, sol_map: dict, k: int):
     neighbors = {} #type: dict[int, dict]
     cache = set()
     nchoosek = comb(len(s), k)
@@ -65,7 +63,7 @@ def get_neighbors(dist: dict, s: tuple, sol_map: dict[tuple, int], k: int):
     neighbors[sol_map[s]] = {'weight': 1 - total_weight}
     return neighbors
 
-def build_graph(dist: dict, sol: tuple|list, sol_map: dict[tuple, int], k: int):
+def build_graph(dist: dict, sol: tuple|list, sol_map: dict, k: int):
     graph = {}
     for s in sol:
         graph[sol_map[s]] = get_neighbors(dist, s, sol_map, k)
@@ -73,7 +71,7 @@ def build_graph(dist: dict, sol: tuple|list, sol_map: dict[tuple, int], k: int):
         # print('len', len(sol_map))
     return graph, sol_map
 
-def get_d_maxes(dist: dict, counts: tuple[int]):
+def get_d_maxes(dist: dict, counts: tuple):
     d_maxes = {}
     for item in dist:
         d_max = 0
@@ -84,7 +82,7 @@ def get_d_maxes(dist: dict, counts: tuple[int]):
         d_maxes[item] = d_max
     return d_maxes
 
-def build_graph_simple(dist: dict, counts: tuple[int], sampler: SimpleMCMCSampler, total_solutions=0):
+def build_graph_simple(dist: dict, counts: tuple, sampler: SimpleMCMCSampler, total_solutions=0):
     empty_sol = tuple()
     sol_map = {}
     reverse_sol_map = {}
@@ -105,7 +103,7 @@ def build_graph_simple(dist: dict, counts: tuple[int], sampler: SimpleMCMCSample
         stack.extend([reverse_sol_map[n] for n in graph[sol_map[node]]])
     return graph, sol_map
 
-def get_neighbors_simple(dist: dict, s: tuple, counts: tuple, sol_map: dict[tuple, int], reverse_sol_map: dict[int, tuple], d_maxes: dict[tuple, int], sampler: SimpleMCMCSampler):
+def get_neighbors_simple(dist: dict, s: tuple, counts: tuple, sol_map: dict, reverse_sol_map: dict, d_maxes: dict, sampler: SimpleMCMCSampler):
     if len(s) > 0:
         if all(i == 0 for i in tup_minus(tup_sum(s), counts)):
             get_neighbors_simple.num_exact += 1

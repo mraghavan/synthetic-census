@@ -1,21 +1,21 @@
-from config2 import ParserBuilder
-from encoding import encode_hh_dist, encode_row
-from build_micro_dist import read_microdata
-from ip_distribution import ip_solve
 import pandas as pd
 import pickle
 import re
 import networkx as nx
-from mcmc_sampler import get_log_prob, MCMCSampler, SimpleMCMCSampler
 import numpy as np
 import scipy.sparse as sp
-from knapsack_utils import is_eligible, logsumexp
 from collections import Counter
-from build_mcmc_graphs import get_neighbors_simple, get_d_maxes
+# from build_mcmc_graphs import get_neighbors_simple, get_d_maxes
 import random
 from math import ceil
 import os
 import matplotlib.pyplot as plt
+from ..synthetic_data_generation.mcmc_sampler import get_log_prob, MCMCSampler, SimpleMCMCSampler
+from ..utils.knapsack_utils import is_eligible, logsumexp
+from ..utils.config2 import ParserBuilder
+from ..utils.encoding import encode_hh_dist, encode_row
+from ..preprocessing.build_micro_dist import read_microdata
+from ..utils.ip_distribution import ip_solve
 
 parser_builder = ParserBuilder(
         {'state': True,
@@ -40,7 +40,7 @@ def is_connected(graph: nx.DiGraph):
         stack.extend([n for n in graph.neighbors(node)])
     return len(seen) == len(graph)
 
-def mixing_test(P: sp.csr_array, sampler: MCMCSampler | SimpleMCMCSampler, counts: tuple[int], sol_map: dict[tuple, int], sol, num_tries=10000):
+def mixing_test(P: sp.csr_array, sampler: MCMCSampler | SimpleMCMCSampler, counts: tuple, sol_map: dict, sol, num_tries=10000):
     actual = P[[sol_map[sol]]]
     # print('Actual transitions', actual)
     # csr matrix of shape (1, P.shape[1])
@@ -82,7 +82,7 @@ def get_mixing_time(G: nx.DiGraph, pi_min: float, eps=1/(2*np.exp(1))):
     mixing_ub = ceil(t_rel * np.log(1/(eps*pi_min)))
     return mixing_ub
 
-def get_solution_density(G: nx.DiGraph, gamma: float, dist: dict, reverse_sol_map: dict, sampler: SimpleMCMCSampler, counts: tuple[int]):
+def get_solution_density(G: nx.DiGraph, gamma: float, dist: dict, reverse_sol_map: dict, sampler: SimpleMCMCSampler, counts: tuple):
     true_sol_probs = []
     bad_sol_probs = []
     for sol_number in G.nodes():

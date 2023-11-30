@@ -106,7 +106,7 @@ class MCMCSampler:
     def get_sampling_num(self, x_counter, removal_counter):
         return prod([comb(x_counter[a], removal_counter[a]) for a in removal_counter])
 
-    def generate_random_removal(self, x: tuple[tuple[int, ...], ...]):
+    def generate_random_removal(self, x: tuple):
         # remove k elements at random
         remove_indices = np.random.choice(len(x), self.k, replace=False)
         # y = tuple(a for i, a in enumerate(x) if i not in remove_indices)
@@ -116,7 +116,7 @@ class MCMCSampler:
         else:
             return None
 
-    def mcmc_solve(self, counts: tuple[int, ...]):
+    def mcmc_solve(self, counts: tuple):
         # get initial solution using ip_solve
         current_solution = ip_solve(counts, self.dist, num_solutions=1)[0]
         # print('Initial solution:', current_solution)
@@ -169,7 +169,7 @@ class MCMCSampler:
                 # MCMCSampler.num_transitions += 1
         return current_solution
 
-    def get_next_state(self, counts: tuple[int], current_state: tuple[tuple[int]]):
+    def get_next_state(self, counts: tuple, current_state: tuple):
         if np.random.random() < 0.5:
             return current_state
         removed = self.generate_random_removal(current_state)
@@ -202,15 +202,15 @@ class MCMCSampler:
         else:
             return current_state
 
-def counter_to_tuple(counter: Counter[tuple]):
+def counter_to_tuple(counter: Counter):
     return tuple(sorted(list(counter.elements())))
 
 class SimpleMCMCSampler:
-    def __init__(self, dist: dict[tuple, int], gamma=1.0):
+    def __init__(self, dist: dict, gamma=1.0):
         self.dist = dist
         self.gamma = gamma
 
-    def get_next_state(self, counts: tuple[int], x: tuple[tuple[int]], dist=None):
+    def get_next_state(self, counts: tuple, x: tuple, dist=None):
         # Make the chain lazy
         x_counter = Counter(x)
         if np.random.random() < 0.5:
@@ -236,7 +236,7 @@ class SimpleMCMCSampler:
             return x
         return counter_to_tuple(xprime_counter)
 
-    def mcmc_solve(self, counts: tuple[int], num_iterations=1000):
+    def mcmc_solve(self, counts: tuple, num_iterations=1000):
         current_solution = Counter() # type: Counter[tuple]
         dist = {item: prob for item, prob in self.dist.items() if is_eligible(item, counts)}
         for _ in range(num_iterations):

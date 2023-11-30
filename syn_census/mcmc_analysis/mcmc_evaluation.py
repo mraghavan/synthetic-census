@@ -1,8 +1,8 @@
 import pickle
 import matplotlib.pyplot as plt
-from config2 import ParserBuilder
 import re
 import os
+from ..utils.config2 import ParserBuilder
 
 parser_builder = ParserBuilder(
         {'state': True,

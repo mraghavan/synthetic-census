@@ -1,5 +1,4 @@
 import pandas as pd
-import os
 import sys
 import numpy as np
 from .guided_solver import SOLVER_PARAMS, SOLVER_RESULTS, SolverResults, solve
@@ -19,7 +18,7 @@ def sample_from_sol(sol):
         return keys[0]
 
 def generate_data(
-        out_file: str,
+        out_file: str, #TODO remove
         micro_file: str,
         block_clean_file: str,
         num_sols: int,

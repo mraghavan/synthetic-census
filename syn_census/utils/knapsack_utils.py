@@ -16,7 +16,7 @@ def exp_normalize(dist: dict):
     dist = OrderedDict({k: np.exp(v - m) for k, v in dist.items()})
     return normalize(dist)
 
-def get_ordering(dist: dict[tuple[int, ...], float]):
+def get_ordering(dist: dict):
     return sorted(list(dist.keys()))
 
 def is_eligible(house, counts):
