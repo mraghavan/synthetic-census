@@ -6,6 +6,7 @@
 #SBATCH -o out_files/samp.%j.out  # File to which STDOUT will be written, %j inserts jobid
 #SBATCH -e out_files/samp.%j.err  # File to which STDERR will be written, %j inserts jobid
 #SBATCH --mail-type=END
+[ "$#" -eq 1 ] || { echo "No task name given" ; exit 1 ; }
 module load python/3.8.5-fasrc01
 echo Reading from job $1
 python3 aggregate_data_shards --from_params AL_params.json --task_name $1
