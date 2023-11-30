@@ -96,7 +96,7 @@ You will need to modify your `[params_file]` to inclue the appropriate file path
 If using `slurm`, you can modify the following files to generate a dataset.
 First, modify `shard_generation.sh`, which looks like this:
 
-https://github.com/mraghavan/synthetic-census/blob/refactor/shard_generation.sh
+https://github.com/mraghavan/synthetic-census/blob/098f944d6b803be40c82daa48f4655ee1826968e/shard_generation.sh
 
 Make sure you change `out_files` to a directory where you want text logs to go (and make sure that directory exists).
 You may also need to load appropriate python modules (including `gurobipy`).
