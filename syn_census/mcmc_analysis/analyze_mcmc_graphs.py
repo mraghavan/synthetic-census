@@ -99,118 +99,118 @@ def get_solution_density(G: nx.DiGraph, gamma: float, dist: dict, reverse_sol_ma
     total_sum = logsumexp(true_sol_probs + bad_sol_probs)
     return np.exp(true_sum - total_sum)
 
-if __name__ == '__main__':
-    parser_builder.parse_args()
-    print(parser_builder.args)
-    args = parser_builder.args
-    #TODO larger k
-    #TODO some analysis of expansion of solution set
-    graphs = {}
-    sol_maps = {}
+# if __name__ == '__main__':
+    # parser_builder.parse_args()
+    # print(parser_builder.args)
+    # args = parser_builder.args
+    # #TODO larger k
+    # #TODO some analysis of expansion of solution set
+    # graphs = {}
+    # sol_maps = {}
 
 
-    fname = '{}_graph.pkl'
-    # get all files matching the pattern
-    formats = [fname.format(r'simple_(\d+(\.\d+)?)'), fname.format(r'k_\d+')]
-    matching_files = []
-    for form in formats:
-        matching_files += [f for f in os.listdir(args.synthetic_output_dir) if re.match(form, f)]
-    print(matching_files)
-    df = read_block_data(args.block_clean_file)
-    # non-empty rows
-    df = df[df['H7X001'] > 0]
-    print(df.head())
-    dist = encode_hh_dist(read_microdata(args.micro_file))
-    test_row = 3
-    row = df.iloc[test_row]
-    counts = encode_row(row)
-    simple_dist = {k: v for k, v in dist.items() if is_eligible(k, counts)}
+    # fname = '{}_graph.pkl'
+    # # get all files matching the pattern
+    # formats = [fname.format(r'simple_(\d+(\.\d+)?)'), fname.format(r'k_\d+')]
+    # matching_files = []
+    # for form in formats:
+        # matching_files += [f for f in os.listdir(args.synthetic_output_dir) if re.match(form, f)]
+    # print(matching_files)
+    # df = read_block_data(args.block_clean_file)
+    # # non-empty rows
+    # df = df[df['H7X001'] > 0]
+    # print(df.head())
+    # dist = encode_hh_dist(read_microdata(args.micro_file))
+    # test_row = 3
+    # row = df.iloc[test_row]
+    # counts = encode_row(row)
+    # simple_dist = {k: v for k, v in dist.items() if is_eligible(k, counts)}
 
-    sol = ip_solve(counts, dist, num_solutions=args.num_sols)
-    # sol_map = {v: i for i, v in enumerate(sol)}
-    # sol_map_copy = sol_map.copy()
+    # sol = ip_solve(counts, dist, num_solutions=args.num_sols)
+    # # sol_map = {v: i for i, v in enumerate(sol)}
+    # # sol_map_copy = sol_map.copy()
 
-    gammas = {}
+    # gammas = {}
 
-    for file in matching_files:
-        with open(file, 'rb') as f:
-            print(f'Loading {file}')
-            g, sol_map = pickle.load(f)
-            graphs[file] = nx.DiGraph(g)
-            sol_maps[file] = sol_map
-    for graph in graphs:
-        m = re.match(r'simple_(\d+(\.\d+)?)', graph)
-        if m:
-            gammas[graph] = float(m.group(1))
+    # for file in matching_files:
+        # with open(file, 'rb') as f:
+            # print(f'Loading {file}')
+            # g, sol_map = pickle.load(f)
+            # graphs[file] = nx.DiGraph(g)
+            # sol_maps[file] = sol_map
+    # for graph in graphs:
+        # m = re.match(r'simple_(\d+(\.\d+)?)', graph)
+        # if m:
+            # gammas[graph] = float(m.group(1))
 
-    # reverse_sol_map = {v: k for k, v in sol_maps['simple'].items()}
+    # # reverse_sol_map = {v: k for k, v in sol_maps['simple'].items()}
     
-    # Test connectivity for k_* graphs
-    print('Testing connectivity')
-    for graph in graphs:
-        if re.match(r'k_\d', graph):
-            graph_is_connected = is_connected(graphs[graph])
-            print(f'{graph} is connected: {graph_is_connected}')
+    # # Test connectivity for k_* graphs
+    # print('Testing connectivity')
+    # for graph in graphs:
+        # if re.match(r'k_\d', graph):
+            # graph_is_connected = is_connected(graphs[graph])
+            # print(f'{graph} is connected: {graph_is_connected}')
 
 
-    test_transition = False
-    if test_transition:
-        print('Testing tranistion matrices')
-        num_to_test = 10
-        for graph in graphs:
-            print('Testing', graph)
-            test_sols = random.choices(list(sol_maps[graph].keys()), k=num_to_test)
-            print('Test numbers', [sol_maps[graph][s] for s in test_sols])
-            if re.match(r'k_\d', graph):
-                for s in test_sols:
-                    k = int(graph.split('_')[1])
-                    mixing_test(nx.to_scipy_sparse_array(graphs[graph], nodelist=sorted(graphs[graph].nodes())), MCMCSampler(dist, k=k), counts, sol_maps[graph], s)
-            else:
-                if graph not in gammas:
-                    continue
-                for s in test_sols:
-                    mixing_test(nx.to_scipy_sparse_array(graphs[graph], nodelist=sorted(graphs[graph].nodes())), SimpleMCMCSampler(simple_dist), counts, sol_maps[graph], s)
+    # test_transition = False
+    # if test_transition:
+        # print('Testing tranistion matrices')
+        # num_to_test = 10
+        # for graph in graphs:
+            # print('Testing', graph)
+            # test_sols = random.choices(list(sol_maps[graph].keys()), k=num_to_test)
+            # print('Test numbers', [sol_maps[graph][s] for s in test_sols])
+            # if re.match(r'k_\d', graph):
+                # for s in test_sols:
+                    # k = int(graph.split('_')[1])
+                    # mixing_test(nx.to_scipy_sparse_array(graphs[graph], nodelist=sorted(graphs[graph].nodes())), MCMCSampler(dist, k=k), counts, sol_maps[graph], s)
+            # else:
+                # if graph not in gammas:
+                    # continue
+                # for s in test_sols:
+                    # mixing_test(nx.to_scipy_sparse_array(graphs[graph], nodelist=sorted(graphs[graph].nodes())), SimpleMCMCSampler(simple_dist), counts, sol_maps[graph], s)
 
-    test_mixing_time = True
-    mixing_times = {}
-    if test_mixing_time:
-        print('Testing mixing time')
-        for graph in graphs:
-            if not graph in gammas:
-                continue
-            print('Testing', graph)
-            mixing_time = get_mixing_time(graphs[graph], 1/len(graphs[graph]))
-            print('Mixing time', mixing_time)
-            if graph in gammas:
-                mixing_times[gammas[graph]] = mixing_time
+    # test_mixing_time = True
+    # mixing_times = {}
+    # if test_mixing_time:
+        # print('Testing mixing time')
+        # for graph in graphs:
+            # if not graph in gammas:
+                # continue
+            # print('Testing', graph)
+            # mixing_time = get_mixing_time(graphs[graph], 1/len(graphs[graph]))
+            # print('Mixing time', mixing_time)
+            # if graph in gammas:
+                # mixing_times[gammas[graph]] = mixing_time
 
-    densities = {}
-    test_solution_density = True
-    if test_solution_density:
-        print('Testing solution density')
-        for graph in graphs:
-            if not graph in gammas:
-                continue
-            print('Testing', graph)
-            gamma = gammas[graph]
-            print('gamma', gamma)
-            reverse_sol_map = {v: k for k, v in sol_maps[graph].items()}
-            density = get_solution_density(graphs[graph], gamma, simple_dist, reverse_sol_map, SimpleMCMCSampler(simple_dist, gamma), counts)
-            densities[gamma] = density
-            print('Solution density', density)
-    sorted_gammas = sorted(gammas.values())
-    if len(densities) > 0 and len(mixing_times) > 0:
-        fig, ax1 = plt.subplots()
-        line1, = ax1.plot(sorted_gammas, [1/densities[gamma] for gamma in sorted_gammas], label='1/solution density')
-        ax1.set_yscale('log')
-        ax1.set_xlabel(r'$\gamma$')
-        ax1.set_ylabel('1/solution density')
-        ax2 = ax1.twinx()
-        line2, = ax2.plot(sorted_gammas, [mixing_times[gamma] for gamma in sorted_gammas], label='mixing time', color='r')
-        ax2.set_yscale('log')
-        ax2.set_ylabel('mixing time')
-        lines = [line1, line2]
-        labels = [line.get_label() for line in lines]
-        ax1.legend(lines, labels)
-        plt.savefig('mixing_time_vs_solution_density.png')
-        plt.show()
+    # densities = {}
+    # test_solution_density = True
+    # if test_solution_density:
+        # print('Testing solution density')
+        # for graph in graphs:
+            # if not graph in gammas:
+                # continue
+            # print('Testing', graph)
+            # gamma = gammas[graph]
+            # print('gamma', gamma)
+            # reverse_sol_map = {v: k for k, v in sol_maps[graph].items()}
+            # density = get_solution_density(graphs[graph], gamma, simple_dist, reverse_sol_map, SimpleMCMCSampler(simple_dist, gamma), counts)
+            # densities[gamma] = density
+            # print('Solution density', density)
+    # sorted_gammas = sorted(gammas.values())
+    # if len(densities) > 0 and len(mixing_times) > 0:
+        # fig, ax1 = plt.subplots()
+        # line1, = ax1.plot(sorted_gammas, [1/densities[gamma] for gamma in sorted_gammas], label='1/solution density')
+        # ax1.set_yscale('log')
+        # ax1.set_xlabel(r'$\gamma$')
+        # ax1.set_ylabel('1/solution density')
+        # ax2 = ax1.twinx()
+        # line2, = ax2.plot(sorted_gammas, [mixing_times[gamma] for gamma in sorted_gammas], label='mixing time', color='r')
+        # ax2.set_yscale('log')
+        # ax2.set_ylabel('mixing time')
+        # lines = [line1, line2]
+        # labels = [line.get_label() for line in lines]
+        # ax1.legend(lines, labels)
+        # plt.savefig('mixing_time_vs_solution_density.png')
+        # plt.show()
