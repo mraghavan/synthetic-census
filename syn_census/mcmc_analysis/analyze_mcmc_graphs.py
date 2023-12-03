@@ -7,11 +7,9 @@ import scipy.sparse as sp
 from collections import Counter
 # from build_mcmc_graphs import get_neighbors_simple, get_d_maxes
 import random
-from math import ceil
-import os
-import matplotlib.pyplot as plt
+from math import ceil, floor
 from ..synthetic_data_generation.mcmc_sampler import get_log_prob, MCMCSampler, SimpleMCMCSampler
-from ..utils.knapsack_utils import is_eligible, logsumexp
+from ..utils.knapsack_utils import is_eligible, logsumexp, tup_sum, tup_minus, exp_normalize
 from ..utils.config2 import ParserBuilder
 from ..utils.encoding import encode_hh_dist, encode_row
 from ..preprocessing.build_micro_dist import read_microdata
@@ -71,7 +69,7 @@ def print_sol(sol):
         print(str(k), v)
     print()
 
-def get_mixing_time(G: nx.DiGraph, pi_min: float, eps=1/(2*np.exp(1))):
+def get_mixing_time_bounds(G: nx.DiGraph, pi_min: float, eps=1/(2*np.exp(1))):
     # TODO for large graphs will have to start working with sparse matrices
     P = nx.to_scipy_sparse_array(G)
     ls = sp.linalg.eigs(P, k=2, which='LM', return_eigenvectors=False)
@@ -79,24 +77,75 @@ def get_mixing_time(G: nx.DiGraph, pi_min: float, eps=1/(2*np.exp(1))):
     print('l2', l2)
     t_rel = 1/(1-l2)
     print('t_rel', t_rel)
+    mixing_lb = floor((t_rel-1) * np.log(1/(2*eps)))
     mixing_ub = ceil(t_rel * np.log(1/(eps*pi_min)))
-    return mixing_ub
+    return (mixing_lb, mixing_ub)
+
+def get_conductance_ub(G: nx.DiGraph, dist: dict, sol_map: dict, gamma: float, counts: tuple):
+    print('Getting conductance')
+    reverse_sol_map = {v: k for k, v in sol_map.items()}
+    sol_num_to_distance = {}
+    for sol, sol_num in sol_map.items():
+        if sol != ():
+            sol_num_to_distance[sol_num] = sum(tup_minus(counts, tup_sum(sol)))
+        else:
+            sol_num_to_distance[sol_num] = sum(counts)
+    log_pi = {}
+    log_pi_list_by_layer = {}
+    for i, sol_num in enumerate(G.nodes()):
+        sol = reverse_sol_map[sol_num]
+        log_pi[sol_num] = get_log_prob(sol, dist) - gamma * sol_num_to_distance[sol_num]
+        if sol_num_to_distance[sol_num] not in log_pi_list_by_layer:
+            log_pi_list_by_layer[sol_num_to_distance[sol_num]] = []
+        log_pi_list_by_layer[sol_num_to_distance[sol_num]].append(log_pi[sol_num])
+    log_normalizing_constant = logsumexp(list(log_pi.values()))
+    normalized_log_pi = {sol_num: log_pi[sol_num] - log_normalizing_constant for sol_num in log_pi}
+    log_pi_by_layer = {l: logsumexp(log_pi_list_by_layer[l]) for l in log_pi_list_by_layer}
+    # print('Before normalization', log_pi_by_layer)
+    pi_by_layer = exp_normalize(log_pi_by_layer)
+    # print('After', pi_by_layer)
+    all_layers = sorted(list(pi_by_layer.keys()))
+    # print('All layers', all_layers)
+    phis = []
+    for l in all_layers[:-1]:
+        phi = get_phi(G, l, pi_by_layer, normalized_log_pi, sol_num_to_distance)
+        print('Layer', l, 'phi', phi)
+        if not np.isinf(phi):
+            phis.append(phi)
+    return min(phis)
+
+def get_phi(G: nx.DiGraph, l: int, pi_by_layer: dict, normalized_log_pi: dict, sol_num_to_distance: dict):
+    print('Getting phi for layer', l)
+    S_l = [sol_num for sol_num in G.nodes() if sol_num_to_distance[sol_num] <= l]
+    S_l_complement = set(sol_num for sol_num in G.nodes() if sol_num_to_distance[sol_num] > l)
+    pi_S = sum(pi_by_layer[l_prime] for l_prime in pi_by_layer if l_prime <= l)
+    Q = 0
+    for sol_num in S_l:
+        crossing_prob = 0
+        for _, neighbor in G.edges(sol_num): #type: ignore
+            if neighbor in S_l_complement:
+                crossing_prob += G.edges[sol_num, neighbor]['weight']
+        Q += np.exp(normalized_log_pi[sol_num]) * crossing_prob
+    return Q/(min(pi_S, 1-pi_S))
 
 def get_solution_density(G: nx.DiGraph, gamma: float, dist: dict, reverse_sol_map: dict, sampler: SimpleMCMCSampler, counts: tuple):
     true_sol_probs = []
     bad_sol_probs = []
+    count = 0
     for sol_number in G.nodes():
         sol = reverse_sol_map[sol_number]
         p = get_log_prob(sol, dist)
         diff = sampler.get_prob_diff_sum(counts, Counter(sol))
         p -= gamma * diff
         if diff == 0:
+            count += 1
             true_sol_probs.append(p)
         else:
             bad_sol_probs.append(p)
     # sum together the true and bad probs using logsumexp
     true_sum = logsumexp(true_sol_probs)
     total_sum = logsumexp(true_sol_probs + bad_sol_probs)
+    print('count', count)
     return np.exp(true_sum - total_sum)
 
 # if __name__ == '__main__':

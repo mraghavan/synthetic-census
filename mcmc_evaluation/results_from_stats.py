@@ -30,42 +30,57 @@ def plot_solution_density_and_mixing_time(all_results):
     gammas = extract_params(simple_results, SIMPLE_PATTERN, float)
     gamma_list = sorted(gammas.keys())
     print(gammas)
-    mixing_times = [simple_results[gammas[g]]['mixing_time'] for g in gamma_list]
-    print(mixing_times)
+    mixing_times_lbs = [simple_results[gammas[g]]['mixing_time'][0] for g in gamma_list]
+    mixing_times_ubs = [simple_results[gammas[g]]['mixing_time'][1] for g in gamma_list]
     densities = [simple_results[gammas[g]]['solution_density'] for g in gamma_list]
-    print(densities)
     ax1: Axes = None #type: ignore
     _, ax1 = plt.subplots() #type: ignore
-    line1, = ax1.plot(gamma_list, [1/d for d in densities], label='1/solution density')
+    # color_cycle = ax1._get_lines.color_cycle
+    line1, = ax1.plot(gamma_list, [1/d for d in densities], label='1/solution density', marker='o')
     ax1.set_yscale('log') #type: ignore
     ax1.set_xlabel(r'$\gamma$')
     ax1.set_ylabel('1/solution density')
     ax2 = ax1.twinx()
-    line2, = ax2.plot(gamma_list, mixing_times, label='mixing time', color='r')
+    line2, = ax2.plot(gamma_list, mixing_times_lbs, label='mixing time LB', color='r', marker='o')
+    line3, = ax2.plot(gamma_list, mixing_times_ubs, label='mixing time UB', color='g', marker='o')
     ax2.set_yscale('log')
     ax2.set_ylabel('mixing time')
-    lines = [line1, line2]
+    lines = [line1, line2, line3]
     labels = [line.get_label() for line in lines]
     ax1.legend(lines, labels, loc='upper center')
     plt.tight_layout()
     plt.savefig('img/mixing_time_vs_solution_density.png')
     plt.show()
 
+    conductances = [simple_results[gammas[g]]['conductance_ub'] for g in gamma_list]
+    conductance_mixings = [(1/(2*c) - 1) for c in conductances]
+    conductance_lbs = [mt*1/d for mt, d in zip(conductance_mixings, densities)]
+
     k_results = {k: v for k, v in all_results.items() if not is_simple(k)}
     ks = extract_params(k_results, K_PATTERN, int)
     k_list = sorted(ks.keys())
 
-    expected_times = [mt * 1/d for mt, d in zip(mixing_times, densities)]
-    k_mixing_times = [k_results[ks[k]]['mixing_time'] for k in k_list]
+    expected_time_lbs = [mt * 1/d for mt, d in zip(mixing_times_lbs, densities)]
+    expected_time_ubs = [mt * 1/d for mt, d in zip(mixing_times_ubs, densities)]
+    k_mixing_time_lbs = [k_results[ks[k]]['mixing_time'][0] for k in k_list]
+    k_mixing_time_ubs = [k_results[ks[k]]['mixing_time'][1] for k in k_list]
     _, ax1 = plt.subplots() #type: ignore
-    line1, = ax1.plot(k_list, k_mixing_times, label='complex')
+    lines = []
+    l, = ax1.plot(k_list, k_mixing_time_lbs, label='complex LB', marker='o')
+    lines.append(l)
+    l, = ax1.plot(k_list, k_mixing_time_ubs, label='complex UB', marker='o')
+    lines.append(l)
     ax1.set_yscale('log') #type: ignore
     ax1.set_xlabel('$k$')
     ax1.set_ylabel('expected #iterations')
     ax2 = ax1.twiny()
-    line2, = ax2.plot(gamma_list, expected_times, label='simple', color='r')
+    l, = ax2.plot(gamma_list, expected_time_lbs, label='simple LB', color='r', marker='o')
+    lines.append(l)
+    l, = ax2.plot(gamma_list, expected_time_ubs, label='simple UB', color='g', marker='o')
+    lines.append(l)
+    l, = ax2.plot(gamma_list, conductance_lbs, label='conductance LB', color='y', marker='o')
+    lines.append(l)
     ax2.set_xlabel(r'$\gamma$')
-    lines = [line1, line2]
     labels = [line.get_label() for line in lines]
     plt.title("Expected iterations to generate a valid solution")
     ax1.legend(lines, labels)

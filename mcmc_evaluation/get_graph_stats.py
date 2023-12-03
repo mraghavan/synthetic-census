@@ -11,7 +11,7 @@ from syn_census.preprocessing.build_micro_dist import read_microdata
 from syn_census.utils.encoding import encode_hh_dist, encode_row
 from syn_census.utils.ip_distribution import ip_solve
 from syn_census.utils.knapsack_utils import is_eligible
-from syn_census.mcmc_analysis.analyze_mcmc_graphs import is_connected, get_mixing_time, get_solution_density
+from syn_census.mcmc_analysis.analyze_mcmc_graphs import is_connected, get_mixing_time_bounds, get_solution_density, get_conductance_ub
 
 parser_builder = ParserBuilder(
         {'state': True,
@@ -58,10 +58,11 @@ if __name__ == '__main__':
 
     gammas = {}
     common_analyses_to_run = {
-            'mixing_time': lambda g, sm, param: get_mixing_time(g, 1/len(g)),
+            'mixing_time': lambda g, sm, param: get_mixing_time_bounds(g, 1/len(g)),
             }
     simple_analyses_to_run = {
             'solution_density': lambda g, sm, param: get_solution_density(g, param, simple_dist, {v: k for k, v in sm.items()}, SimpleMCMCSampler(simple_dist, param), counts),
+            'conductance_ub': lambda g, sm, param: get_conductance_ub(g, simple_dist, sm, param, counts),
             }
     simple_analyses_to_run.update(common_analyses_to_run)
     k_analyses_to_run = {

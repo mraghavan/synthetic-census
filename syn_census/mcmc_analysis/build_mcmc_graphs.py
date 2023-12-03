@@ -106,7 +106,7 @@ def get_neighbors_simple(dist: dict, s: tuple, counts: tuple, sol_map: dict, rev
     if len(s) > 0:
         if all(i == 0 for i in tup_minus(tup_sum(s), counts)):
             get_neighbors_simple.num_exact += 1
-            print('Exact solution found', get_neighbors_simple.num_exact)
+            # print('Exact solution found', get_neighbors_simple.num_exact)
     neighbors = {}
     total_weight = 0
     for item in dist:

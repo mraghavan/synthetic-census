@@ -31,6 +31,7 @@ if __name__ == '__main__':
     df = df[df['H7X001'] > 0]
     print(df.head())
     dist = encode_hh_dist(read_microdata(args.micro_file))
+    # Consider row 51497 (473 solutions)
     test_row = 3
     row = df.iloc[test_row]
     counts = encode_row(row)
@@ -39,8 +40,8 @@ if __name__ == '__main__':
     sol_map = {v: i for i, v in enumerate(sol)}
     sol_map_copy = sol_map.copy()
 
-    gammas = [0, 0.1, 0.2, 0.5, 0.7, 1]
-    ks = [2, 3, 4]
+    gammas = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 1]
+    ks = [2, 3, 4, 5]
 
     graphs_to_build = {f'simple_{gamma}': (lambda param=gamma: build_graph_simple(dist, counts, SimpleMCMCSampler(simple_dist, gamma=param), total_solutions=len(sol))) for gamma in gammas}
     graphs_to_build.update({f'k_{k}': (lambda param=k: build_graph(dist, sol, sol_map_copy, k=param)) for k in ks})
