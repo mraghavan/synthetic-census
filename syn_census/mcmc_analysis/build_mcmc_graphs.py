@@ -1,7 +1,7 @@
 import pandas as pd
 from itertools import combinations
 from collections import Counter
-import networkx as nx
+# import networkx as nx
 from scipy.special import comb
 from scipy.linalg import eig
 import numpy as np
@@ -163,14 +163,14 @@ def get_neighbors_simple(dist: dict, s: tuple, counts: tuple, sol_map: dict, rev
     return neighbors_by_gamma
 get_neighbors_simple.num_exact = 0
 
-def is_stochastic(G: nx.DiGraph):
-    for node in G.nodes():
-        outgoing_edges = [e for e in G.edges(node)]
-        probabilities = [G[e[0]][e[1]]['weight'] for e in outgoing_edges]
-        if not approx_equal(sum(probabilities), 1.0):
-            print(sum(probabilities))
-            return False
-    return True
+# def is_stochastic(G: nx.DiGraph):
+    # for node in G.nodes():
+        # outgoing_edges = [e for e in G.edges(node)]
+        # probabilities = [G[e[0]][e[1]]['weight'] for e in outgoing_edges]
+        # if not approx_equal(sum(probabilities), 1.0):
+            # print(sum(probabilities))
+            # return False
+    # return True
 
 def get_tvd_at_iterations(P: np.ndarray, t: int):
     # print(P)
