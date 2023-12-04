@@ -13,4 +13,4 @@ else
 fi
 module load sloan/python/modules/python-3.6/gurobipy/9.0.1
 python3 -m pip install gurobipy
-python3 generate_data_shard.py --from_params ../AL_params.json --task_name $TASK_NAME
+python3 build_graphs.py --from_params ../AL_params.json --task_name $TASK_NAME
