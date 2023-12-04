@@ -2,6 +2,7 @@ import sys
 import os
 import pickle
 import re
+import numpy as np
 import matplotlib.pyplot as plt
 # from matplotlib.axes import Axes
 sys.path.append('../')
@@ -10,12 +11,32 @@ def is_simple(k):
     return type(k[2]) == float
 
 def exp_mixing_time_lb(all_results, c, d, gamma):
+    if (c, d, gamma) not in all_results:
+        return np.inf
     return  all_results[(c, d, gamma)]['mixing_time'][0] / all_results[(c, d, gamma)]['solution_density']
 
 def exp_mixing_time_ub(all_results, c, d, gamma):
+    if (c, d, gamma) not in all_results:
+        return np.inf
     return  all_results[(c, d, gamma)]['mixing_time'][1] / all_results[(c, d, gamma)]['solution_density']
 
-def plot_solution_density_and_mixing_time(all_results):
+def plot_best_vs_k(all_results: dict):
+    c = 4
+    ds = sorted(set([key[1] for key in all_results.keys() if key[0] == c]))
+    gamma_list = sorted(set([key[2] for key in all_results.keys() if key[0] == c and is_simple(key)]))
+    k = 2
+    best_mixing_time_lbs = [min([exp_mixing_time_lb(all_results, c, d, g) for g in gamma_list]) for d in ds]
+    print(ds)
+    print(best_mixing_time_lbs)
+    plt.plot(ds, best_mixing_time_lbs, label='simple LB for c={}, k={}'.format(c, k), marker='o')
+    plt.plot(ds, [all_results[(c, d, k)]['mixing_time'][0] for d in ds], label='reduced LB for c={}, k={}'.format(c, k), marker='o')
+    plt.xlabel('$d$')
+    plt.ylabel('mixing time')
+    plt.yscale('log')
+    plt.legend()
+    plt.show()
+
+def plot_solution_density_and_mixing_time(all_results: dict):
     simple_results = {k: v for k, v in all_results.items() if is_simple(k)}
     gammas = [k[2] for k in simple_results.keys()]
     c_d_pairs = set((k[0], k[1]) for k in all_results.keys())
@@ -50,6 +71,19 @@ def plot_solution_density_and_mixing_time(all_results):
     plt.legend()
     plt.show()
 
+    for c, d in c_d_pairs:
+        conductances = [all_results[(c, d, g)]['conductance_ub'] for g in gamma_list]
+        conductance_mixings = [(1/(2*c) - 1) for c in conductances]
+        densities = [all_results[(c, d, g)]['solution_density'] for g in gamma_list]
+        conductance_lbs = [mt*1/d for mt, d in zip(conductance_mixings, densities)]
+        plt.plot(gamma_list, conductance_lbs, label='expected #iterations LB for c={}, d={}'.format(c, d), marker='o')
+    plt.title("Using conductance")
+    plt.xlabel(r'$\gamma$')
+    plt.ylabel('expected #iterations')
+    plt.yscale('log')
+    plt.legend()
+    plt.show()
+
     d = 4
     all_cs = sorted(set(k[0] for k in all_results.keys() if k[1] == d))
     print(all_cs)
@@ -68,6 +102,18 @@ def plot_solution_density_and_mixing_time(all_results):
     plt.yscale('log')
     plt.legend()
     plt.show()
+
+    k = 2
+    all_ds = sorted(set(k[1] for k in all_results.keys()))
+    for d in all_ds:
+        cs = sorted(set(k[0] for k in all_results.keys() if k[1] == d))
+        plt.plot(cs, [all_results[(c, d, k)]['mixing_time'][0] for c in cs], label='mixing time UB for d={}'.format(d), marker='o')
+    plt.xlabel(r'$c$')
+    plt.ylabel('expected #iterations LB')
+    plt.yscale('log')
+    plt.legend()
+    plt.show()
+    
     # densities = [simple_results[gammas[g]]['solution_density'] for g in gamma_list]
     # ax1: Axes = None #type: ignore
     # _, ax1 = plt.subplots() #type: ignore
@@ -148,5 +194,10 @@ def load_all_results(open_dir):
 if __name__ == '__main__':
     open_dir = 'test_graphs/'
     all_results = load_all_results(open_dir)
-    plot_solution_density_and_mixing_time(all_results)
+    for key, results in all_results.items():
+        c, d, k = key
+        if c == 4 and k == 2:
+            print(key, results['num_states'])
+    # plot_solution_density_and_mixing_time(all_results)
+    plot_best_vs_k(all_results)
 

@@ -8,7 +8,7 @@ from collections import Counter
 # from build_mcmc_graphs import get_neighbors_simple, get_d_maxes
 import random
 from math import ceil, floor
-from ..synthetic_data_generation.mcmc_sampler import get_log_prob, MCMCSampler, SimpleMCMCSampler
+from ..synthetic_data_generation.mcmc_sampler import get_log_prob, MCMCSampler, SimpleMCMCSampler, get_prob_diff_sum
 from ..utils.knapsack_utils import is_eligible, logsumexp, tup_sum, tup_minus, exp_normalize
 from ..utils.config2 import ParserBuilder
 from ..utils.encoding import encode_hh_dist, encode_row
@@ -128,25 +128,25 @@ def get_phi(G: nx.DiGraph, l: int, pi_by_layer: dict, normalized_log_pi: dict, s
         Q += np.exp(normalized_log_pi[sol_num]) * crossing_prob
     return Q/(min(pi_S, 1-pi_S))
 
-def get_solution_density(G: nx.DiGraph, gamma: float, dist: dict, reverse_sol_map: dict, sampler: SimpleMCMCSampler, counts: tuple):
+def get_solution_density(G: nx.DiGraph, gamma: float, dist: dict, reverse_sol_map: dict, counts: tuple):
     true_sol_probs = []
     bad_sol_probs = []
-    count = 0
+    num_exact_solutions = 0
     for sol_number in G.nodes():
         sol = reverse_sol_map[sol_number]
         p = get_log_prob(sol, dist)
-        diff = sampler.get_prob_diff_sum(counts, Counter(sol))
+        diff = get_prob_diff_sum(counts, Counter(sol))
         p -= gamma * diff
         if diff == 0:
-            count += 1
+            num_exact_solutions += 1
             true_sol_probs.append(p)
         else:
             bad_sol_probs.append(p)
     # sum together the true and bad probs using logsumexp
     true_sum = logsumexp(true_sol_probs)
     total_sum = logsumexp(true_sol_probs + bad_sol_probs)
-    print('count', count)
-    return np.exp(true_sum - total_sum)
+    # print('count', count)
+    return np.exp(true_sum - total_sum), num_exact_solutions
 
 # if __name__ == '__main__':
     # parser_builder.parse_args()

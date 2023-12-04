@@ -295,6 +295,13 @@ class SimpleMCMCSampler:
         assert all(x >= 0 for x in prob_diff)
         return sum(prob_diff)
 
+def get_prob_diff_sum(counts, x_counter):
+    if sum(x_counter.values()) == 0:
+        return sum(counts)
+    prob_diff = tup_minus(counts, tup_sum(tuple(x_counter.elements())))
+    assert all(x >= 0 for x in prob_diff)
+    return sum(prob_diff)
+
 def get_sol_dist(counts, dist, num_samples=400):
     sampler = MCMCSampler(dist, k=3)
     d = Counter()

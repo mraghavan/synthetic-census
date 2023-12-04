@@ -33,7 +33,7 @@ def make_dist_and_counts(c:int, d: int):
 
 def get_all_solutions(c, d):
     dist, counts = make_dist_and_counts(c, d)
-    return ip_solve(counts, dist, num_solutions=10000)
+    return ip_solve(counts, dist, num_solutions=100000)
 
 def build_simple_graph(c: int, d: int, gamma: float):
     """
