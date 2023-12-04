@@ -63,7 +63,6 @@ def all_files_exist(file_dir: str, template: str, identifier: str, params: list)
 
 if __name__ == '__main__':
     # set numpy random seed
-    np.random.seed(0)
     parser_builder.parse_args()
     print(parser_builder.args)
     args = parser_builder.args
@@ -79,8 +78,8 @@ if __name__ == '__main__':
     df = df[df['H7X001'] > 0]
     print(df.head())
     dist = encode_hh_dist(read_microdata(args.micro_file))
-    random_sample_of_block_ids.add('001-020200-2006')
-    random_sample_of_block_ids.add('001-020700-1055')
+    # random_sample_of_block_ids.add('001-020200-2006')
+    # random_sample_of_block_ids.add('001-020700-1055')
     matching_df = df[df['identifier'].isin(random_sample_of_block_ids)]
     print('Number of matching rows:', len(matching_df))
 
