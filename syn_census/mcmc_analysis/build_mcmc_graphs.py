@@ -65,7 +65,7 @@ def get_neighbors(dist: dict, s: tuple, sol_map: dict, k: int):
     neighbors[sol_map[s]] = {'weight': 1 - total_weight}
     return neighbors
 
-def build_graph(dist: dict, sol: tuple|list, sol_map: dict, k: int):
+def build_graph(dist: dict, sol, sol_map: dict, k: int):
     graph = {}
     for s in sol:
         graph[sol_map[s]] = get_neighbors(dist, s, sol_map, k)
