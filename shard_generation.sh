@@ -5,7 +5,7 @@
 #SBATCH --mem=5000           # Memory pool for all cores (see also --mem-per-cpu)
 #SBATCH -o out_files/census.%A_%a.out  # File to which STDOUT will be written, %j inserts jobid
 #SBATCH -e out_files/census.%A_%a.err  # File to which STDERR will be written, %j inserts jobid
-#SBATCH --array=1-50
+#SBATCH --array=1-100
 #SBATCH --mail-type=END
 if [ "$#" -eq 1 ]; then
     TASK_NAME=$1
