@@ -1,12 +1,12 @@
 import pandas as pd
-import pickle
-import re
+# import pickle
+# import re
 import networkx as nx
 import numpy as np
 import scipy.sparse as sp
 from collections import Counter
 # from build_mcmc_graphs import get_neighbors_simple, get_d_maxes
-import random
+# import random
 from math import ceil, floor
 from ..synthetic_data_generation.mcmc_sampler import get_log_prob, MCMCSampler, SimpleMCMCSampler, get_prob_diff_sum
 from ..utils.knapsack_utils import is_eligible, logsumexp, tup_sum, tup_minus, exp_normalize
@@ -14,6 +14,7 @@ from ..utils.config2 import ParserBuilder
 from ..utils.encoding import encode_hh_dist, encode_row
 from ..preprocessing.build_micro_dist import read_microdata
 from ..utils.ip_distribution import ip_solve
+from ..utils.time_limit import run_with_timeout, Func
 
 parser_builder = ParserBuilder(
         {'state': True,
@@ -69,17 +70,46 @@ def print_sol(sol):
         print(str(k), v)
     print()
 
-def get_mixing_time_bounds(G: nx.DiGraph, pi_min: float, eps=1/(2*np.exp(1))):
-    # TODO for large graphs will have to start working with sparse matrices
+def get_mixing_time_bounds(
+        G: nx.DiGraph,
+        pi_min: float,
+        eps: float = 1/(2*np.exp(1)),
+        time_limit: int = 60*10,
+        fallback_tol: float = 1e-6):
     P = nx.to_scipy_sparse_array(G)
-    ls = sp.linalg.eigs(P, k=2, which='LM', return_eigenvectors=False)
-    l2 = sorted(np.abs(ls), reverse=True)[1]
+    l2 = 0.0
+    exact = True
+    # Consider just always using tolerance?
+    try:
+        # this will slow things down because P has to be pickled
+        f = Func(sp.linalg.eigs, P, k=2, which='LM', return_eigenvectors=False)
+        ls = run_with_timeout(f, time_limit)
+        l2 = sorted(np.abs(ls), reverse=True)[1]
+    except TimeoutError:
+        print('Timed out')
+    except TypeError as e:
+        print('Error', e)
+        print('Likely cause: failed to converge in eigenvalue computation')
+    if l2 == 0.0:
+        ls = sp.linalg.eigs(P, k=2, which='LM', return_eigenvectors=False, tol=fallback_tol)
+        l2 = sorted(np.abs(ls), reverse=True)[1]
+        exact = False
     print('l2', l2)
     t_rel = 1/(1-l2)
     print('t_rel', t_rel)
-    mixing_lb = floor((t_rel-1) * np.log(1/(2*eps)))
-    mixing_ub = ceil(t_rel * np.log(1/(eps*pi_min)))
-    return (mixing_lb, mixing_ub)
+    if exact:
+        mixing_lb = floor((t_rel-1) * np.log(1/(2*eps)))
+        mixing_ub = ceil(t_rel * np.log(1/(eps*pi_min)))
+        return (mixing_lb, mixing_ub), 0
+    else:
+        t_rel_lb = 1/(1-(l2-fallback_tol))
+        mixing_lb = floor((t_rel_lb-1) * np.log(1/(2*eps)))
+        if l2 + fallback_tol >= 1:
+            mixing_ub = np.inf
+        else:
+            t_rel_ub = 1/(1-(l2+fallback_tol))
+            mixing_ub = ceil(t_rel * np.log(1/(eps*pi_min)))
+        return (mixing_lb, mixing_ub), fallback_tol
 
 def get_conductance_ub(G: nx.DiGraph, dist: dict, sol_map: dict, gamma: float, counts: tuple):
     print('Getting conductance')

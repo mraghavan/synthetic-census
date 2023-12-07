@@ -7,12 +7,10 @@ import pandas as pd
 import networkx as nx
 sys.path.append('../')
 from syn_census.utils.config2 import ParserBuilder
-from syn_census.synthetic_data_generation.mcmc_sampler import SimpleMCMCSampler
 from syn_census.preprocessing.build_micro_dist import read_microdata
 from syn_census.utils.encoding import encode_hh_dist, encode_row
-from syn_census.utils.ip_distribution import ip_solve
 from syn_census.utils.knapsack_utils import is_eligible
-from syn_census.mcmc_analysis.analyze_mcmc_graphs import is_connected, get_mixing_time_bounds, get_solution_density, get_conductance_ub
+from syn_census.mcmc_analysis.analyze_mcmc_graphs import is_connected, get_mixing_time_bounds, get_solution_density
 
 parser_builder = ParserBuilder(
         {'state': True,
@@ -47,7 +45,8 @@ def get_reduced_params(fname: str):
 
 def do_common_analyses(G: nx.DiGraph):
     results = {}
-    results['mixing_time_bounds'] = get_mixing_time_bounds(G, 1/len(G))
+    results['mixing_time_bounds'], tolerance = get_mixing_time_bounds(G, 1/len(G))
+    results['mixing_time_tolerance'] = tolerance
     results['num_states'] = len(G)
     return results
 
