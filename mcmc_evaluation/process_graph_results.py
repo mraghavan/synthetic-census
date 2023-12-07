@@ -1,5 +1,6 @@
 import sys
 import os
+import numpy as np
 import pandas as pd
 import pickle
 import re
@@ -93,6 +94,7 @@ def plot_solution_density_and_mixing_time(all_results):
     plt.show()
 
 def load_results(results_dir: str):
+    max_num_solutions = 100
     simple_results = []
     reduced_results = []
     for file in os.listdir(results_dir):
@@ -116,8 +118,13 @@ def load_results(results_dir: str):
                 results['mixing_time_ub'] = results['mixing_time_bounds'][1]
                 del results['mixing_time_bounds']
                 reduced_results.append(results)
+    for results in simple_results + reduced_results:
+        if 'mixing_time_tolerance' not in results:
+            results['mixing_time_tolerance'] = 0.0
     simple_df = pd.DataFrame(simple_results)
     reduced_df = pd.DataFrame(reduced_results)
+    simple_df = simple_df.loc[simple_df['num_solutions'] <= max_num_solutions]
+    reduced_df = reduced_df.loc[reduced_df['num_solutions'] <= max_num_solutions]
     return simple_df, reduced_df
 
 def add_exp_mixing_time(df: pd.DataFrame):
@@ -136,7 +143,7 @@ def scatter_mixing_times(simple_df: pd.DataFrame, reduced_df: pd.DataFrame):
     plt.legend()
     plt.show()
 
-def scatter_mixing_time_ratios(simple_df: pd.DataFrame, reduced_df: pd.DataFrame):
+def scatter_mixing_time_ratios(simple_df: pd.DataFrame, reduced_df: pd.DataFrame, bound='lower'):
     # find common identifiers
     common_ids = set(simple_df['identifier']).intersection(set(reduced_df['identifier']))
     simple_df = simple_df.loc[simple_df['identifier'].isin(common_ids)].copy().reset_index(drop=True)
@@ -145,24 +152,51 @@ def scatter_mixing_time_ratios(simple_df: pd.DataFrame, reduced_df: pd.DataFrame
     simple_df.sort_values(by=['identifier'], inplace=True)
     reduced_df.sort_values(by=['identifier'], inplace=True)
     # scatter num_solutions by ratio of mixing times
-    plt.scatter(simple_df['num_solutions'], simple_df['exp_mixing_time_lb'] / reduced_df['mixing_time_lb'])
+    if bound == 'lower':
+        plt.scatter(simple_df['num_states'], simple_df['exp_mixing_time_lb'] / reduced_df['mixing_time_lb'])
+        plt.ylabel('ratio of expected mixing times LBs')
+    else:
+        plt.scatter(simple_df['num_states'], simple_df['exp_mixing_time_lb'] / reduced_df['mixing_time_ub'])
+        plt.ylabel('min ratio of expected mixing times')
+    plt.xlabel('number of states')
+    plt.yscale('log')
+    plt.show()
+
+def scatter_solutions_vs_states(simple_df: pd.DataFrame):
+    plt.scatter(simple_df['num_solutions'], simple_df['num_states'])
     plt.xlabel('number of solutions')
-    plt.ylabel('ratio of expected mixing times')
+    plt.ylabel('number of states')
     plt.yscale('log')
     plt.show()
 
 def connectivity_analysis(reduced_df: pd.DataFrame):
-    print('Fraction connected', reduced_df['is_connected'].value_counts()[True] / len(reduced_df))
+    for k in sorted(reduced_df['k'].unique()):
+        print(f'Fraction connected for k={k}', reduced_df.loc[reduced_df['k'] == k]['is_connected'].value_counts()[True] / len(reduced_df.loc[reduced_df['k'] == k]))
+    # Find the identifier whre is_connected is False
+    print('Disconnected ids', reduced_df.loc[reduced_df['is_connected'] == False]['identifier'].unique())
 
 def plot_simple_column(simple_df: pd.DataFrame, column: str):
     unique_ids = simple_df['identifier'].unique()
     for ide in unique_ids:
         df = simple_df.loc[simple_df['identifier'] == ide].copy()
         df.sort_values(by=['gamma'], inplace=True)
-        plt.plot(df['gamma'], df[column], color='b', marker='o')
+        if df['mixing_time_tolerance'].unique().size > 1:
+            plt.plot(df['gamma'], df[column], color='r', marker='o')
+        else:
+            plt.plot(df['gamma'], df[column], color='b', marker='o')
     plt.xlabel(r'$\gamma$')
     plt.ylabel(column)
     plt.yscale('log')
+    plt.show()
+
+def hist_column(opt_simple_df: pd.DataFrame, column: str, log=False):
+    if log:
+        plt.hist(np.log(opt_simple_df[column]), bins=20)
+        plt.xlabel(f'log {column}')
+    else:
+        plt.hist(opt_simple_df[column], bins=20)
+        plt.xlabel(column)
+    plt.ylabel('count')
     plt.show()
 
 if __name__ == '__main__':
@@ -174,11 +208,15 @@ if __name__ == '__main__':
     add_exp_mixing_time(simple_df)
     opt_simple_df = get_min_mixing_time_df(simple_df, 'exp_mixing_time_lb')
     opt_reduced_df = get_min_mixing_time_df(reduced_df, 'mixing_time_lb')
-    # scatter_mixing_times(opt_simple_df, opt_reduced_df)
-    scatter_mixing_time_ratios(opt_simple_df, opt_reduced_df)
+    scatter_solutions_vs_states(opt_simple_df)
+    scatter_mixing_times(opt_simple_df, opt_reduced_df)
+    scatter_mixing_time_ratios(opt_simple_df, opt_reduced_df, bound='upper')
     connectivity_analysis(reduced_df)
-    # plot_simple_column(simple_df, 'solution_density')
-    # plot_simple_column(simple_df, 'exp_mixing_time_lb')
+    plot_simple_column(simple_df, 'solution_density')
+    plot_simple_column(simple_df, 'exp_mixing_time_lb')
+    plot_simple_column(simple_df, 'exp_mixing_time_ub')
+    hist_column(opt_simple_df, 'exp_mixing_time_lb', log=True)
+    hist_column(opt_reduced_df, 'mixing_time_ub')
 
-    # get counts of each identifier
-    print(simple_df['identifier'].value_counts())
+    # TODO verify that gamma = 1 is sufficient
+    # looks like there's at least one block where we need larger gamma
