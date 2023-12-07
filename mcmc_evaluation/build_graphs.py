@@ -7,7 +7,6 @@ import numpy as np
 import re
 sys.path.append('../')
 from syn_census.utils.config2 import ParserBuilder
-from syn_census.synthetic_data_generation.mcmc_sampler import SimpleMCMCSampler
 from syn_census.mcmc_analysis.build_mcmc_graphs import build_graph, build_graph_simple, IncompleteError
 from syn_census.preprocessing.build_micro_dist import read_microdata
 from syn_census.utils.encoding import encode_hh_dist, encode_row
@@ -45,6 +44,7 @@ def get_relevant_blocks(results_dir: str, task_name: str, min_sols: int, max_sol
 def make_simple_graphs(row: pd.Series, dist: dict, gammas: list, max_sols=0):
     counts = encode_row(row)
     simple_dist = {k: v for k, v in dist.items() if is_eligible(k, counts)}
+    # should time-bound this
     graphs, sol_map = build_graph_simple(simple_dist, counts, gammas, total_solutions=max_sols)
     return {gamma: (graphs[gamma], sol_map) for gamma in gammas}
 
@@ -78,8 +78,6 @@ if __name__ == '__main__':
     df = df[df['H7X001'] > 0]
     print(df.head())
     dist = encode_hh_dist(read_microdata(args.micro_file))
-    # random_sample_of_block_ids.add('001-020200-2006')
-    # random_sample_of_block_ids.add('001-020700-1055')
     matching_df = df[df['identifier'].isin(random_sample_of_block_ids)]
     print('Number of matching rows:', len(matching_df))
 
@@ -87,10 +85,19 @@ if __name__ == '__main__':
     ks = [2, 3, 4]
     simple_fname_template = '{identifier}_{param}_simple_graph.xz'
     reduced_fname_template = '{identifier}_{param}_reduced_graph.xz'
+    failure_file = os.path.join(args.mcmc_output_dir, 'failures.txt')
+    prev_failures = set()
+    with open(failure_file, 'r') as f:
+        for line in f:
+            prev_failures.add(line.strip())
     failures = []
 
+    # TODO consider adding computation time to the outputs
     for i, row in matching_df.iterrows():
         print('Processing', row['identifier'])
+        if row['identifier'] in prev_failures:
+            print('Skipping', row['identifier'], 'because it failed previously')
+            continue
         if not all_files_exist(args.mcmc_output_dir, simple_fname_template, row['identifier'], gammas):
             try:
                 simple_graphs = make_simple_graphs(row, dist, gammas, sol_counts[row['identifier']])
@@ -116,27 +123,6 @@ if __name__ == '__main__':
                     pickle.dump(graph, f)
         else:
             print('Reduced graphs already exist for', row['identifier'])
-
-    # test_row = 3
-    # row = df.iloc[test_row]
-    # counts = encode_row(row)
-    # simple_dist = {k: v for k, v in dist.items() if is_eligible(k, counts)}
-    # sol = ip_solve(counts, dist, num_solutions=args.num_sols)
-    # sol_map = {v: i for i, v in enumerate(sol)}
-    # sol_map_copy = sol_map.copy()
-
-    # gammas = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 1]
-    # ks = [2, 3, 4, 5]
-
-    # graphs_to_build = {f'simple_{gamma}': (lambda param=gamma: build_graph_simple(dist, counts, SimpleMCMCSampler(simple_dist, gamma=param), total_solutions=len(sol))) for gamma in gammas}
-    # graphs_to_build.update({f'k_{k}': (lambda param=k: build_graph(dist, sol, sol_map_copy, k=param)) for k in ks})
-
-    # for g, func in graphs_to_build.items():
-        # full_name = args.mcmc_output_dir + fname.format(g)
-        # if not os.path.exists(full_name):
-            # print('Building graph', g)
-            # graph = func()
-            # with open(full_name, 'wb') as f:
-                # pickle.dump(graph, f)
-        # else:
-            # print('Graph', g, 'already exists')
+    with open(failure_file, 'a') as f:
+        for failure in failures:
+            f.write(failure + '\n')
