@@ -6,10 +6,10 @@ from scipy.special import comb
 from scipy.linalg import eig
 import numpy as np
 from ..utils.config2 import ParserBuilder
-from ..synthetic_data_generation.mcmc_sampler import get_log_prob, SimpleMCMCSampler, get_prob_diff_sum
+from ..synthetic_data_generation.mcmc_sampler import get_log_prob, get_prob_diff_sum
 from ..utils.knapsack_utils import tup_sum, tup_minus, is_eligible, tup_plus, is_feasible
-from ..utils.census_utils import approx_equal
-from ..utils.ip_distribution import ip_solve
+# from ..utils.census_utils import approx_equal
+from ..utils.ip_distribution import ip_enumerate
 # from ..utils.encoding import encode_hh_dist, encode_row
 # from ..preprocessing.build_micro_dist import read_microdata
 
@@ -38,7 +38,7 @@ def get_neighbors(dist: dict, s: tuple, sol_map: dict, k: int):
     for combo in combinations(s, k):
         if tuple(sorted(combo)) in cache:
             continue
-        solutions = ip_solve(tup_sum(combo), dist)
+        solutions = ip_enumerate(tup_sum(combo), tuple(dist.keys()), num_solutions=len(sol_map))
         cache.add(tuple(sorted(combo)))
         assert len(solutions) > 0
         for sol in solutions:

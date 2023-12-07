@@ -3,8 +3,17 @@ import numpy as np
 from gurobipy import GRB
 from math import log
 from .knapsack_utils import get_ordering, normalize
+from functools import lru_cache
 
-def ip_solve(counts: tuple, dist, num_solutions=50):
+@lru_cache
+def ip_enumerate(counts: tuple, elements: tuple, num_solutions=50):
+    """
+    Enumerate all solutions to the knapsack problem with the given counts and elements.
+    Faster than ip_solve because it can be cached.
+    """
+    return ip_solve(counts, {e: 1 for e in elements}, num_solutions=num_solutions)
+
+def ip_solve(counts: tuple, dist: dict, num_solutions=50):
     ordering = get_ordering(dist)
     constraint_mat = np.array(ordering).T
     # print(constraint_mat)
