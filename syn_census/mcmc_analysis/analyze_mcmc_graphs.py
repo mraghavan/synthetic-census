@@ -70,12 +70,7 @@ def print_sol(sol):
         print(str(k), v)
     print()
 
-def get_mixing_time_bounds(
-        G: nx.DiGraph,
-        pi_min: float,
-        eps: float = 1/(2*np.exp(1)),
-        time_limit: int = 60*10,
-        fallback_tol: float = 1e-6):
+def get_spectral_gap(G: nx.DiGraph, time_limit: int = 60*10, fallback_tol: float = 1e-6):
     P = nx.to_scipy_sparse_array(G)
     l2 = 0.0
     exact = True
@@ -95,21 +90,10 @@ def get_mixing_time_bounds(
         l2 = sorted(np.abs(ls), reverse=True)[1]
         exact = False
     print('l2', l2)
-    t_rel = 1/(1-l2)
-    print('t_rel', t_rel)
     if exact:
-        mixing_lb = floor((t_rel-1) * np.log(1/(2*eps)))
-        mixing_ub = ceil(t_rel * np.log(1/(eps*pi_min)))
-        return (mixing_lb, mixing_ub), 0
+        return 1-l2, 0
     else:
-        t_rel_lb = 1/(1-(l2-fallback_tol))
-        mixing_lb = floor((t_rel_lb-1) * np.log(1/(2*eps)))
-        if l2 + fallback_tol >= 1:
-            mixing_ub = np.inf
-        else:
-            t_rel_ub = 1/(1-(l2+fallback_tol))
-            mixing_ub = ceil(t_rel * np.log(1/(eps*pi_min)))
-        return (mixing_lb, mixing_ub), fallback_tol
+        return 1-l2, fallback_tol
 
 def get_conductance_ub(G: nx.DiGraph, dist: dict, sol_map: dict, gamma: float, counts: tuple):
     print('Getting conductance')
