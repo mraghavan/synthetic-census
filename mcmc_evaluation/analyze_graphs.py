@@ -10,7 +10,7 @@ from syn_census.utils.config2 import ParserBuilder
 from syn_census.preprocessing.build_micro_dist import read_microdata
 from syn_census.utils.encoding import encode_hh_dist, encode_row
 from syn_census.utils.knapsack_utils import is_eligible
-from syn_census.mcmc_analysis.analyze_mcmc_graphs import is_connected, get_mixing_time_bounds, get_solution_density
+from syn_census.mcmc_analysis.analyze_mcmc_graphs import is_connected, get_solution_density, get_spectral_gap
 
 parser_builder = ParserBuilder(
         {'state': True,
@@ -45,8 +45,8 @@ def get_reduced_params(fname: str):
 
 def do_common_analyses(G: nx.DiGraph):
     results = {}
-    results['mixing_time_bounds'], tolerance = get_mixing_time_bounds(G, 1/len(G))
-    results['mixing_time_tolerance'] = tolerance
+    results['spectral_gap'], tolerance = get_spectral_gap(G)
+    results['spectral_gap_tolerance'] = tolerance
     results['num_states'] = len(G)
     return results
 
@@ -55,14 +55,16 @@ def do_simple_analyses(graph: dict, sol_map: dict, dist: dict, counts: tuple, ga
     G = nx.DiGraph(graph)
     reverse_sol_map = {v: k for k, v in sol_map.items()}
     results['solution_density'], results['num_solutions'] = get_solution_density(G, gamma, dist, reverse_sol_map, counts)
+    results['num_elements'] = counts[-1]
     results.update(do_common_analyses(G))
     return results
 
-def do_reduced_analyses(graph: dict):
+def do_reduced_analyses(graph: dict, sol_map: dict):
     results = {}
     G = nx.DiGraph(graph)
     results['is_connected'] = is_connected(G)
     results['num_solutions'] = len(G)
+    results['num_elements'] = len(list(sol_map.keys())[0])
     results.update(do_common_analyses(G))
     return results
 
@@ -120,7 +122,7 @@ if __name__ == '__main__':
         with lzma.open(os.path.join(args.mcmc_output_dir, reduced_fname), 'rb') as f:
             graph, sol_map = pickle.load(f)
         print(f'Graph has {len(graph)} nodes')
-        results = do_reduced_analyses(graph)
+        results = do_reduced_analyses(graph, sol_map)
         with open(results_fname, 'wb') as f:
             print(f'Writing results to {results_fname}')
             pickle.dump(results, f)
