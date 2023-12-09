@@ -5,7 +5,7 @@ from math import log
 from .knapsack_utils import get_ordering, normalize
 from functools import lru_cache
 
-@lru_cache
+@lru_cache(maxsize=1000)
 def ip_enumerate(counts: tuple, elements: tuple, num_solutions=50):
     """
     Enumerate all solutions to the knapsack problem with the given counts and elements.
