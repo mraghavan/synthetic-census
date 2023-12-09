@@ -68,7 +68,7 @@ if __name__ == '__main__':
     min_sols = 30
     max_sols = 100
     sample_size = 0
-    big_sample_size = 10
+    big_sample_size = 50
     # TODO do we want to filter by # HH instead?
     sol_counts = get_relevant_blocks(args.synthetic_output_dir, args.task_name, args.num_sols)
     filtered_sol_counts = {k: v for k, v in sol_counts.items() if min_sols <= v <= max_sols}
