@@ -14,6 +14,7 @@ parser_builder = ParserBuilder(
          'synthetic_output_dir': False,
          'num_sols': True,
          'task_name': True,
+         'num_samples': True,
          })
 
 def get_relevant_blocks(results_dir: str, task_name: str, max_num_sols: int):
@@ -38,7 +39,7 @@ if __name__ == '__main__':
     args = parser_builder.args
     min_hh = 5
     max_hh = 20
-    sample_size = 100
+    sample_size = args.num_samples
     sol_lens = get_relevant_blocks(args.synthetic_output_dir, args.task_name, args.num_sols)
     filtered_sol_lens = {k: v for k, v in sol_lens.items() if min_hh <= v <= max_hh}
     print('Number of blocks with between {} and {} hhs: {}'.format(min_hh, max_hh, len(filtered_sol_lens)))
