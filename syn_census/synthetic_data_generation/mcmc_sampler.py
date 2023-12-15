@@ -33,6 +33,7 @@ class MCMCSampler:
 
     @lru_cache(maxsize=None)
     def ip_solve_cached(self, counts):
+        #TODO use ip_enumerate
         # print(counts)
         solutions = ip_solve(counts, self.dist, num_solutions=MAX_SOLUTIONS)
         if len(solutions) == 0:
@@ -110,7 +111,7 @@ class MCMCSampler:
         # remove k elements at random
         remove_indices = np.random.choice(len(x), self.k, replace=False)
         # y = tuple(a for i, a in enumerate(x) if i not in remove_indices)
-        removed = tuple(x[i] for i in remove_indices)
+        removed = tuple(sorted(x[i] for i in remove_indices))
         if np.random.random() < 1/self.get_sampling_num(Counter(x), Counter(removed)):
             return removed
         else:
@@ -142,7 +143,12 @@ class MCMCSampler:
             # use ip_solve to solve the new subproblem
             all_solutions = self.ip_solve_cached(tup_sum(removed))
             if len(all_solutions) >= MAX_SOLUTIONS:
+                # this means our choice of k was too large
                 raise Exception('Too many solutions')
+            if len(all_solutions) == 1:
+                continue
+            # TODO make sure this works
+            all_solutions.remove(removed)
             # randomly choose one of the solutions
             xprime += all_solutions[np.random.choice(len(all_solutions))]
             xprime = tuple(xprime)
@@ -226,7 +232,11 @@ class SimpleMCMCSampler:
             cur_item = tup_plus(cur_item, random_item)
         if d_max == 0:
             return x
-        d = np.random.randint(0, d_max + 1)
+        cur_amt = x_counter[random_item]
+        d = cur_amt
+        # This is a bit of a hack
+        while d == cur_amt:
+            d = np.random.randint(0, d_max + 1)
         xprime_counter = x_counter.copy()
         xprime_counter[random_item] = d
         if sum(xprime_counter.values()) == 0:

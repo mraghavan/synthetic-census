@@ -56,7 +56,7 @@ def get_neighbors(dist: dict, s: tuple, sol_map: dict, k: int):
             xprime_prob = get_log_prob(neighbor, dist)
             ratio = np.exp(xprime_prob - x_prob)
             # factor of 2 because it's lazy
-            prob = 1/(2*len(solutions)*nchoosek) * min(1, ratio)
+            prob = 1/(2*(len(solutions)-1)*nchoosek) * min(1, ratio)
             if sol_map[neighbor] not in neighbors:
                 neighbors[sol_map[neighbor]] = {'weight': prob}
             else:
@@ -86,7 +86,7 @@ def get_d_maxes(dist: dict, counts: tuple):
         d_maxes[item] = d_max
     return d_maxes
 
-def build_graph_simple(dist: dict, counts: tuple, gammas: list, total_solutions=0, fail_time = 100000):
+def build_graph_simple(dist: dict, counts: tuple, gammas: list, total_solutions=0, fail_time = 1000000):
     empty_sol = tuple()
     # same sol_map for each gamma
     sol_map = {}
@@ -104,8 +104,8 @@ def build_graph_simple(dist: dict, counts: tuple, gammas: list, total_solutions=
         node = stack.pop()
         if sol_map[node] in first_graph:
             continue
-        if len(node) > fail_time and get_neighbors_simple.num_exact == 0:
-            print('Failed to find exact solutions. Aborting')
+        if len(node) > fail_time:
+            print('Too many states. Aborting')
             raise IncompleteError('Failed to find exact solutions')
         if len(first_graph) % 1000 == 0:
             print('Processed', len(first_graph), 'exact solutions', get_neighbors_simple.num_exact, '/', total_solutions, ('projected {}'.format(int(len(first_graph)*(total_solutions+1)/max(1, get_neighbors_simple.num_exact))) if total_solutions > 0 else ''))
@@ -149,7 +149,7 @@ def get_neighbors_simple(dist: dict, s: tuple, counts: tuple, sol_map: dict, rev
             x_prob_diff_sum = get_prob_diff_sum(counts, Counter(s))
             xprime_prob_diff_sum = get_prob_diff_sum(counts, new_s_counter)
             for gamma in gammas:
-                w = 1/(2*len(dist) * (d_max + 1))
+                w = 1/(2*len(dist) * d_max)
                 x_prob = get_log_prob(s, dist) - gamma * x_prob_diff_sum
                 xprime_prob = get_log_prob(new_s, dist) - gamma * xprime_prob_diff_sum
                 ratio = np.exp(xprime_prob - x_prob)

@@ -3,7 +3,7 @@ import os
 import pickle
 import lzma
 import pandas as pd
-import numpy as np
+# import numpy as np
 import re
 sys.path.append('../')
 from syn_census.utils.config2 import ParserBuilder
@@ -20,6 +20,8 @@ parser_builder = ParserBuilder(
          'mcmc_output_dir': True,
          'synthetic_output_dir': False,
          'num_sols': True,
+         'task': False,
+         'num_tasks': False,
          'task_name': True,
          })
 
@@ -65,16 +67,25 @@ if __name__ == '__main__':
     parser_builder.parse_args()
     print(parser_builder.args)
     args = parser_builder.args
-    min_sols = 30
-    max_sols = 100
-    sample_size = 0
-    big_sample_size = 50
-    # TODO do we want to filter by # HH instead?
-    sol_counts = get_relevant_blocks(args.synthetic_output_dir, args.task_name, args.num_sols)
-    filtered_sol_counts = {k: v for k, v in sol_counts.items() if min_sols <= v <= max_sols}
-    print('Number of blocks with between {} and {} solutions: {}'.format(min_sols, max_sols, len(filtered_sol_counts)))
-    random_sample_of_block_ids = set(np.random.choice(list(filtered_sol_counts.keys()), size=sample_size, replace=False))
-    print(random_sample_of_block_ids)
+    print(f'Task {args.task} of {args.num_tasks}')
+    # min_sols = 30
+    # max_sols = 100
+    # sample_size = 0
+    # big_sample_size = 50
+    # # TODO do we want to filter by # HH instead?
+    # sol_counts = get_relevant_blocks(args.synthetic_output_dir, args.task_name, args.num_sols)
+    # filtered_sol_counts = {k: v for k, v in sol_counts.items() if min_sols <= v <= max_sols}
+    # print('Number of blocks with between {} and {} solutions: {}'.format(min_sols, max_sols, len(filtered_sol_counts)))
+    # random_sample_of_block_ids = set(np.random.choice(list(filtered_sol_counts.keys()), size=sample_size, replace=False))
+    # print(random_sample_of_block_ids)
+    in_file = os.path.join(args.mcmc_output_dir, 'sampled_block_ids.txt')
+    full_random_sample_of_block_ids = []
+    with open(in_file, 'r') as f:
+        full_random_sample_of_block_ids = f.read().splitlines()
+    # get the IDs for this task
+    step_size = len(full_random_sample_of_block_ids) // args.num_tasks
+    random_sample_of_block_ids = set(full_random_sample_of_block_ids[(args.task-1) * step_size: args.task * step_size])
+
 
     df = pd.read_csv(args.block_clean_file)
     # non-empty rows
@@ -88,22 +99,17 @@ if __name__ == '__main__':
     ks = [2, 3, 4]
     simple_fname_template = '{identifier}_{param}_simple_graph.xz'
     reduced_fname_template = '{identifier}_{param}_reduced_graph.xz'
-    failure_file = os.path.join(args.mcmc_output_dir, 'failures.txt')
-    prev_failures = set()
-    with open(failure_file, 'r') as f:
-        for line in f:
-            prev_failures.add(line.strip())
+    failure_file = os.path.join(args.mcmc_output_dir, f'failures{args.task}.txt')
     failures = []
 
     # TODO consider adding computation time to the outputs
     for i, row in matching_df.iterrows():
         print('Processing', row['identifier'])
-        if row['identifier'] in prev_failures:
-            print('Skipping', row['identifier'], 'because it failed previously')
-            continue
         if not all_files_exist(args.mcmc_output_dir, simple_fname_template, row['identifier'], gammas):
+            sol = ip_solve(encode_row(row), dist, num_solutions=args.num_sols)
+            num_sols = len(sol)
             try:
-                simple_graphs = make_simple_graphs(row, dist, gammas, sol_counts[row['identifier']])
+                simple_graphs = make_simple_graphs(row, dist, gammas, max_sols=num_sols)
             except IncompleteError as e:
                 print('IncompleteError:', e)
                 failures.append(row['identifier'])
@@ -116,7 +122,7 @@ if __name__ == '__main__':
         else:
             print('Simple graphs already exist for', row['identifier'])
         if not all_files_exist(args.mcmc_output_dir, reduced_fname_template, row['identifier'], ks):
-            sol = ip_solve(encode_row(row), dist, num_solutions=max_sols)
+            sol = ip_solve(encode_row(row), dist, num_solutions=args.num_sols)
             sol_map = {v: i for i, v in enumerate(sol)}
             reduced_graphs = make_reduced_graphs(dist, sol, sol_map, ks)
             for k, graph in reduced_graphs.items():
@@ -130,24 +136,24 @@ if __name__ == '__main__':
         for failure in failures:
             f.write(failure + '\n')
 
-    filter_larger = {k: v for k, v in sol_counts.items() if v > max_sols}
-    big_sample_of_block_ids = set(np.random.choice(list(filter_larger.keys()), size=big_sample_size, replace=False))
-    print(big_sample_of_block_ids)
-    big_matching_df = df[df['identifier'].isin(big_sample_of_block_ids)]
-    print('Number of matching rows:', len(big_matching_df))
-    for i, row in big_matching_df.iterrows():
-        print('Processing', row['identifier'])
-        if row['identifier'] in prev_failures:
-            print('Skipping', row['identifier'], 'because it failed previously')
-            continue
-        if not all_files_exist(args.mcmc_output_dir, reduced_fname_template, row['identifier'], ks):
-            sol = ip_solve(encode_row(row), dist, num_solutions=args.num_sols)
-            sol_map = {v: i for i, v in enumerate(sol)}
-            reduced_graphs = make_reduced_graphs(dist, sol, sol_map, ks)
-            for k, graph in reduced_graphs.items():
-                fname = os.path.join(args.mcmc_output_dir, reduced_fname_template.format(identifier=row['identifier'], param=k))
-                with lzma.open(fname, 'wb') as f:
-                    print('Writing to', fname)
-                    pickle.dump(graph, f)
-        else:
-            print('Reduced graphs already exist for', row['identifier'])
+    # filter_larger = {k: v for k, v in sol_counts.items() if v > max_sols}
+    # big_sample_of_block_ids = set(np.random.choice(list(filter_larger.keys()), size=big_sample_size, replace=False))
+    # print(big_sample_of_block_ids)
+    # big_matching_df = df[df['identifier'].isin(big_sample_of_block_ids)]
+    # print('Number of matching rows:', len(big_matching_df))
+    # for i, row in big_matching_df.iterrows():
+        # print('Processing', row['identifier'])
+        # if row['identifier'] in prev_failures:
+            # print('Skipping', row['identifier'], 'because it failed previously')
+            # continue
+        # if not all_files_exist(args.mcmc_output_dir, reduced_fname_template, row['identifier'], ks):
+            # sol = ip_solve(encode_row(row), dist, num_solutions=args.num_sols)
+            # sol_map = {v: i for i, v in enumerate(sol)}
+            # reduced_graphs = make_reduced_graphs(dist, sol, sol_map, ks)
+            # for k, graph in reduced_graphs.items():
+                # fname = os.path.join(args.mcmc_output_dir, reduced_fname_template.format(identifier=row['identifier'], param=k))
+                # with lzma.open(fname, 'wb') as f:
+                    # print('Writing to', fname)
+                    # pickle.dump(graph, f)
+        # else:
+            # print('Reduced graphs already exist for', row['identifier'])
