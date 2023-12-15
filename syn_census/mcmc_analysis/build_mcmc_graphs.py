@@ -1,7 +1,6 @@
 import pandas as pd
 from itertools import combinations
 from collections import Counter
-# import networkx as nx
 from scipy.special import comb
 from scipy.linalg import eig
 import numpy as np
@@ -183,105 +182,8 @@ def get_tvd_at_iterations(P: np.ndarray, t: int):
     for i, l in enumerate(ls):
         if np.abs(np.real(l) - 1.0) < .00001:
             break
-    # print(ls)
-    # print(i)
-    # print(ls[i])
     pi = vl[:,i]
     pi = pi/np.sum(pi)
     v_t = P_t.T.dot(initial)
-    # print(np.sum(v_t))
     v_t = v_t / np.sum(v_t)
-    # print(pi)
-    # print(v_t)
-    # print(sum(pi))
-    # print(sum(v_t))
     return np.sum(np.abs(v_t - pi))/2
-
-# if __name__ == '__main__':
-    # parser_builder.parse_args()
-    # print(parser_builder.args)
-    # parser_builder.verify_required_args()
-    # args = parser_builder.args
-    # #TODO larger k
-    # #TODO some analysis of expansion of solution set
-    # # TODO modify SimpleMCMCSampler to incorporate probabilities and gamma
-
-
-    # graph = None
-    # fname = '{}_graph.pkl'
-    # df = read_block_data(args.block_clean_file)
-    # # non-empty rows
-    # df = df[df['H7X001'] > 0]
-    # print(df.head())
-    # dist = encode_hh_dist(read_microdata(args.micro_file))
-    # test_row = 3
-    # row = df.iloc[test_row]
-    # counts = encode_row(row)
-    # simple_dist = {k: v for k, v in dist.items() if is_eligible(k, counts)}
-    # sol = ip_solve(counts, dist, num_solutions=args.num_sols)
-    # sol_map = {v: i for i, v in enumerate(sol)}
-    # sol_map_copy = sol_map.copy()
-
-    # gammas = [0, 0.1, 0.2, 0.5, 1]
-    # ks = [2, 3]
-
-    # graphs_to_build = {f'simple_{gamma}': (lambda param=gamma: build_graph_simple(dist, counts, SimpleMCMCSampler(simple_dist, gamma=param), total_solutions=len(sol))) for gamma in gammas}
-    # graphs_to_build.update({f'k_{k}': (lambda param=k: build_graph(dist, sol, sol_map_copy, k=param)) for k in ks})
-
-    # for g, func in graphs_to_build.items():
-        # if not os.path.exists(fname.format(g)):
-            # print('Building graph', g)
-            # graph = func()
-            # with open(fname.format(g), 'wb') as f:
-                # pickle.dump(graph, f)
-    
-    # graph, sol_map, reverse_sol_map = build_graph_simple(dist, counts, total_solutions=len(sol))
-    # print('total number of nodes', len(graph))
-    # print(len(reverse_sol_map))
-    # print('Number of exact solutions', sum(1 for n in graph if len(reverse_sol_map[n]) > 0 and tup_sum(reverse_sol_map[n]) == counts))
-    # for n in graph:
-        # if len(reverse_sol_map[n]) == 0:
-            # continue
-        # diff = tup_minus(counts, tup_sum(reverse_sol_map[n]))
-        # print(sum(diff))
-
-    # print(first_sol)
-    # print(len(sol), 'solutions')
-    # if os.path.exists(fname):
-        # with open(fname, 'rb') as f:
-            # graph = pickle.load(f)
-    # else:
-        # graph = build_graph(dist, sol, sol_map_copy, k)
-        # print(graph)
-        # with open(fname, 'wb') as f:
-            # pickle.dump(graph, f)
-
-    # print('connected?', is_connected(graph))
-    # G = nx.DiGraph(graph)
-    # print('is stochastic?', is_stochastic(G))
-    
-    # # print('Number of new states', len(sol_map) - len(sol_map_copy))
-    # sols_with_probs = recompute_probs(sol, dist)
-    # pi_min = min(sols_with_probs.values())
-    # for s in sol:
-        # mixing_test(nx.to_numpy_array(G), MCMCSampler(dist, k=k), sol_map, s)
-
-    # eps = 1/(2*np.exp(1))
-    # mt = get_mixing_time(G, pi_min, eps=eps)
-    # print('Mixing time', mt)
-    # P = nx.to_numpy_array(G)
-    # ts = [1, 10, 100, 1000, 10000]
-    # tvds = [get_tvd_at_iterations(P, t) for t in ts]
-    # plt.plot(ts, tvds)
-    # plt.xscale('log')
-    # plt.ylabel('TVD')
-    # plt.plot([mt, mt], [0, 1], color='k', ls=':')
-    # plt.plot([min(ts), max(ts)], [eps, eps], color='k', ls=':')
-    # plt.show()
-
-    # for t in [1, 10, 100, 1000, 10000]:
-        # print('tvd at', t, get_tvd_at_iterations(nx.to_numpy_array(G), t))
-    # print(sorted(nx.adjacency_spectrum(G), reverse=True)[1])
-    # G.remove_edges_from(nx.selfloop_edges(G))
-    # nx.draw(G, node_size=30, pos=nx.spring_layout(G))
-    # plt.show()
