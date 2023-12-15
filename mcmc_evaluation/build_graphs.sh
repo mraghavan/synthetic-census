@@ -10,4 +10,4 @@
 
 module load sloan/python/modules/python-3.6/gurobipy/9.0.1
 python3 -m pip install gurobipy
-python3 build_graphs.py --from_params AL_params.json --task_name $1 --task $SLURM_ARRAY_TASK_ID --num_tasks $SLURM_ARRAY_TASK_COUNT
+python3 build_graphs.py --from_params ../AL_params.json --task_name $1 --task $SLURM_ARRAY_TASK_ID --num_tasks $SLURM_ARRAY_TASK_COUNT
