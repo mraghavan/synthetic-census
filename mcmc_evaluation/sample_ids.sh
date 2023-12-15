@@ -6,5 +6,5 @@
 #SBATCH -e out_files/ids.err  # File to which STDERR will be written, %j inserts jobid
 #SBATCH --mem=1000           # Memory pool for all cores (see also --mem-per-cpu)
 [ "$#" -eq 1 ] || { echo "No task name given" ; exit 1 ; }
-module load python/3.8.5-fasrc01
+module load sloan/python/modules/python-3.6/gurobipy/9.0.1
 python3 sample_identifiers.py --from_params ../AL_params.json --task_name $1
