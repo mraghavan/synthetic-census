@@ -22,26 +22,7 @@ parser_builder = ParserBuilder(
          'num_sols': True,
          'task': False,
          'num_tasks': False,
-         'task_name': True,
          })
-
-def get_relevant_blocks(results_dir: str, task_name: str, max_num_sols: int):
-    """
-    Returns a list of block ids that have between min_sols and max_sols solutions
-    and their corresponding solution counts.
-    """
-    pattern = re.compile(rf'{task_name}_\d+_\d+.pkl')
-    # matching_ids = []
-    sol_counts = {}
-    for fname in os.listdir(results_dir):
-        if pattern.match(fname):
-            with open(results_dir + fname, 'rb') as f:
-                sols = pickle.load(f)
-                for sol in sols:
-                    if sol['level'] == 1 and len(sol['prob_list']) < max_num_sols:
-                        # matching_ids.append(sol['id'])
-                        sol_counts[sol['id']] = len(sol['prob_list'])
-    return sol_counts
 
 def make_simple_graphs(row: pd.Series, dist: dict, gammas: list, max_sols=0):
     counts = encode_row(row)
@@ -68,16 +49,7 @@ if __name__ == '__main__':
     print(parser_builder.args)
     args = parser_builder.args
     print(f'Task {args.task} of {args.num_tasks}')
-    # min_sols = 30
-    # max_sols = 100
-    # sample_size = 0
-    # big_sample_size = 50
-    # # TODO do we want to filter by # HH instead?
-    # sol_counts = get_relevant_blocks(args.synthetic_output_dir, args.task_name, args.num_sols)
-    # filtered_sol_counts = {k: v for k, v in sol_counts.items() if min_sols <= v <= max_sols}
-    # print('Number of blocks with between {} and {} solutions: {}'.format(min_sols, max_sols, len(filtered_sol_counts)))
-    # random_sample_of_block_ids = set(np.random.choice(list(filtered_sol_counts.keys()), size=sample_size, replace=False))
-    # print(random_sample_of_block_ids)
+
     in_file = os.path.join(args.mcmc_output_dir, 'sampled_block_ids.txt')
     full_random_sample_of_block_ids = []
     with open(in_file, 'r') as f:

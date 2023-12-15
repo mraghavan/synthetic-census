@@ -42,7 +42,6 @@ class ParserBuilder():
         if self.args.from_params != '':
             with open(self.args.from_params, 'rb') as f:
                 params = json.load(f)
-                print(params)
                 for req in self.required_args:
                     if req in params:
                         # Only override if it's a default value
