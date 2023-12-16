@@ -20,6 +20,15 @@ parser_builder = ParserBuilder(
          'num_sols': False,
          })
 
+AXIS_LABELS = {
+        'solution_density': 'Solution density',
+        'mixing_time': 'Mixing time',
+        'num_sols': 'Number of solutions',
+        'mixing_time_lb': 'Lower bound on mixing time',
+        'mixing_time_ub': 'Upper bound on mixing time',
+        'num_elements': 'Number of items in each solution',
+        }
+
 def extract_params(all_results, pattern, t=float):
     # returns a dictionary mapping parameter values to filenames
     params = {}
@@ -29,72 +38,8 @@ def extract_params(all_results, pattern, t=float):
             params[t(m.group(1))] = k
     return params
 
-def plot_solution_density_and_mixing_time(all_results):
-    simple_results = {k: v for k, v in all_results.items() if is_simple(k)}
-    gammas = extract_params(simple_results, SIMPLE_PATTERN, float)
-    gamma_list = sorted(gammas.keys())
-    print(gammas)
-    mixing_times_lbs = [simple_results[gammas[g]]['mixing_time'][0] for g in gamma_list]
-    mixing_times_ubs = [simple_results[gammas[g]]['mixing_time'][1] for g in gamma_list]
-    densities = [simple_results[gammas[g]]['solution_density'] for g in gamma_list]
-    ax1: Axes = None #type: ignore
-    _, ax1 = plt.subplots() #type: ignore
-    # color_cycle = ax1._get_lines.color_cycle
-    line1, = ax1.plot(gamma_list, [1/d for d in densities], label='1/solution density', marker='o')
-    ax1.set_yscale('log') #type: ignore
-    ax1.set_xlabel(r'$\gamma$')
-    ax1.set_ylabel('1/solution density')
-    ax2 = ax1.twinx()
-    line2, = ax2.plot(gamma_list, mixing_times_lbs, label='mixing time LB', color='r', marker='o')
-    line3, = ax2.plot(gamma_list, mixing_times_ubs, label='mixing time UB', color='g', marker='o')
-    ax2.set_yscale('log')
-    ax2.set_ylabel('mixing time')
-    lines = [line1, line2, line3]
-    labels = [line.get_label() for line in lines]
-    ax1.legend(lines, labels, loc='upper center')
-    plt.tight_layout()
-    plt.savefig('img/mixing_time_vs_solution_density.png')
-    plt.show()
-
-    conductances = [simple_results[gammas[g]]['conductance_ub'] for g in gamma_list]
-    conductance_mixings = [(1/(2*c) - 1) for c in conductances]
-    conductance_lbs = [mt*1/d for mt, d in zip(conductance_mixings, densities)]
-
-    k_results = {k: v for k, v in all_results.items() if not is_simple(k)}
-    ks = extract_params(k_results, K_PATTERN, int)
-    k_list = sorted(ks.keys())
-
-    expected_time_lbs = [mt * 1/d for mt, d in zip(mixing_times_lbs, densities)]
-    expected_time_ubs = [mt * 1/d for mt, d in zip(mixing_times_ubs, densities)]
-    k_mixing_time_lbs = [k_results[ks[k]]['mixing_time'][0] for k in k_list]
-    k_mixing_time_ubs = [k_results[ks[k]]['mixing_time'][1] for k in k_list]
-    _, ax1 = plt.subplots() #type: ignore
-    lines = []
-    l, = ax1.plot(k_list, k_mixing_time_lbs, label='complex LB', marker='o')
-    lines.append(l)
-    l, = ax1.plot(k_list, k_mixing_time_ubs, label='complex UB', marker='o')
-    lines.append(l)
-    ax1.set_yscale('log') #type: ignore
-    ax1.set_xlabel('$k$')
-    ax1.set_ylabel('expected #iterations')
-    ax2 = ax1.twiny()
-    l, = ax2.plot(gamma_list, expected_time_lbs, label='simple LB', color='r', marker='o')
-    lines.append(l)
-    l, = ax2.plot(gamma_list, expected_time_ubs, label='simple UB', color='g', marker='o')
-    lines.append(l)
-    l, = ax2.plot(gamma_list, conductance_lbs, label='conductance LB', color='y', marker='o')
-    lines.append(l)
-    ax2.set_xlabel(r'$\gamma$')
-    labels = [line.get_label() for line in lines]
-    plt.title("Expected iterations to generate a valid solution")
-    ax1.legend(lines, labels)
-    plt.tight_layout()
-    ax1.grid(axis='y')
-    plt.savefig('img/expected_time_k_gamma.png')
-    plt.show()
-
 def load_results(results_dir: str):
-    max_num_solutions = 100
+    # max_num_solutions = 100
     simple_results = []
     reduced_results = []
     for file in os.listdir(results_dir):
@@ -105,27 +50,34 @@ def load_results(results_dir: str):
                 results = pickle.load(f)
                 results['identifier'] = m1.group(1)
                 results['gamma'] = float(m1.group(2))
-                results['mixing_time_lb'] = results['mixing_time_bounds'][0]
-                results['mixing_time_ub'] = results['mixing_time_bounds'][1]
-                del results['mixing_time_bounds']
+                # results['mixing_time_lb'] = results['mixing_time_bounds'][0]
+                # results['mixing_time_ub'] = results['mixing_time_bounds'][1]
+                # del results['mixing_time_bounds']
                 simple_results.append(results)
         elif m2 is not None:
             with open(os.path.join(results_dir, file), 'rb') as f:
                 results = pickle.load(f)
                 results['identifier'] = m2.group(1)
                 results['k'] = int(m2.group(2))
-                results['mixing_time_lb'] = results['mixing_time_bounds'][0]
-                results['mixing_time_ub'] = results['mixing_time_bounds'][1]
-                del results['mixing_time_bounds']
+                # results['mixing_time_lb'] = results['mixing_time_bounds'][0]
+                # results['mixing_time_ub'] = results['mixing_time_bounds'][1]
+                # del results['mixing_time_bounds']
                 reduced_results.append(results)
-    for results in simple_results + reduced_results:
-        if 'mixing_time_tolerance' not in results:
-            results['mixing_time_tolerance'] = 0.0
+    # for results in simple_results + reduced_results:
+        # if 'mixing_time_tolerance' not in results:
+            # results['mixing_time_tolerance'] = 0.0
     simple_df = pd.DataFrame(simple_results)
     reduced_df = pd.DataFrame(reduced_results)
-    simple_df = simple_df.loc[simple_df['num_solutions'] <= max_num_solutions]
-    reduced_df = reduced_df.loc[reduced_df['num_solutions'] <= max_num_solutions]
+    # simple_df = simple_df.loc[simple_df['num_solutions'] <= max_num_solutions]
+    # reduced_df = reduced_df.loc[reduced_df['num_solutions'] <= max_num_solutions]
     return simple_df, reduced_df
+
+def add_mixing_time(df: pd.DataFrame, eps=1/(2*np.exp(1))):
+    df['spectral_gap_lb'] = df['spectral_gap'] - df['spectral_gap_tolerance']
+    df['spectral_gap_ub'] = df['spectral_gap'] + df['spectral_gap_tolerance']
+    df['mixing_time_lb'] = np.floor((1/df['spectral_gap_ub'] - 1) * np.log(1/(2*eps)))
+    df['mixing_time_ub'] = np.ceil(1/df['spectral_gap_lb'] * np.log(df['num_solutions']/eps))
+    df.loc[df['spectral_gap_lb'] <= 0, 'mixing_time_ub'] = np.inf
 
 def add_exp_mixing_time(df: pd.DataFrame):
     df['exp_mixing_time_lb'] = df['mixing_time_lb'] / df['solution_density']
@@ -134,13 +86,23 @@ def add_exp_mixing_time(df: pd.DataFrame):
 def get_min_mixing_time_df(df: pd.DataFrame, lb_type: str):
     return df.loc[df.groupby(['identifier'])[lb_type].idxmin()]
 
-def scatter_mixing_times(simple_df: pd.DataFrame, reduced_df: pd.DataFrame):
-    plt.scatter(simple_df['num_solutions'], simple_df['exp_mixing_time_lb'], label='simple LB')
-    plt.scatter(reduced_df['num_solutions'], reduced_df['mixing_time_lb'], label='reduced LB')
-    plt.xlabel('number of solutions')
-    plt.ylabel('expected mixing time')
+def scatter_mixing_times(simple_df: pd.DataFrame, reduced_df: pd.DataFrame, x_axis:str):
+    plt.scatter(simple_df[x_axis], simple_df['exp_mixing_time_lb'], label='simple LB')
+    plt.scatter(reduced_df[x_axis], reduced_df['mixing_time_lb'], label='reduced LB')
+    plt.xlabel(x_axis)
+    plt.ylabel('expected mixing time LB')
     plt.yscale('log')
     plt.legend()
+    plt.show()
+
+def scatter_only_reduced(reduced_df: pd.DataFrame, x_axis:str, column: str):
+    plt.scatter(reduced_df[x_axis], reduced_df[column])
+    # only show integer x ticks
+    # plt.xticks(np.arange(min(reduced_df[x_axis]), max(reduced_df[x_axis])+1, 1.0))
+    plt.xlabel(AXIS_LABELS[x_axis] if x_axis in AXIS_LABELS else x_axis)
+    plt.ylabel(AXIS_LABELS[column] if column in AXIS_LABELS else column)
+    plt.yscale('log')
+    plt.savefig('img/reduced_{}_{}.png'.format(x_axis, column), dpi=300)
     plt.show()
 
 def scatter_mixing_time_ratios(simple_df: pd.DataFrame, reduced_df: pd.DataFrame, bound='lower'):
@@ -175,16 +137,34 @@ def connectivity_analysis(reduced_df: pd.DataFrame):
     # Find the identifier whre is_connected is False
     print('Disconnected ids', reduced_df.loc[reduced_df['is_connected'] == False]['identifier'].unique())
 
-def plot_simple_column(simple_df: pd.DataFrame, column: str):
-    unique_ids = simple_df['identifier'].unique()
+def max_mixing_time(reduced_df: pd.DataFrame):
+    # get identifier for the row with max mixing_time_lb
+    ind = reduced_df['mixing_time_lb'].idxmax()
+    max_lb = reduced_df.loc[ind]['identifier']
+    max_tol = reduced_df.loc[ind]['spectral_gap_tolerance']
+    max_tol = reduced_df.loc[ind]['spectral_gap']
+    max_time = max(reduced_df['mixing_time_lb'])
+    print('Max mixing time', max_lb, max_time, max_tol)
+
+def plot_column(df: pd.DataFrame, column: str, x_axis: str):
+    if 'is_connected' in df.columns:
+        full_df = df[df['is_connected']]
+    else:
+        full_df = df
+    unique_ids = full_df['identifier'].unique()
     for ide in unique_ids:
-        df = simple_df.loc[simple_df['identifier'] == ide].copy()
-        df.sort_values(by=['gamma'], inplace=True)
-        if df['mixing_time_tolerance'].unique().size > 1:
-            plt.plot(df['gamma'], df[column], color='r', marker='o')
+        df = full_df.loc[full_df['identifier'] == ide].copy()
+        df.sort_values(by=[x_axis], inplace=True)
+        if df['spectral_gap_tolerance'].unique().size > 1:
+            plt.plot(df[x_axis], df[column], color='r', marker='o')
         else:
-            plt.plot(df['gamma'], df[column], color='b', marker='o')
-    plt.xlabel(r'$\gamma$')
+            plt.plot(df[x_axis], df[column], color='b', marker='o')
+    if x_axis == 'gamma':
+        plt.xlabel(r'$\gamma$')
+    else:
+        # only show integer x ticks
+        # plt.xticks(np.arange(min(df[x_axis]), max(df[x_axis])+1, 1.0))
+        plt.xlabel('$k$')
     plt.ylabel(column)
     plt.yscale('log')
     plt.show()
@@ -204,17 +184,36 @@ if __name__ == '__main__':
     print(parser_builder.args)
     args = parser_builder.args
 
+    common_num_sols = 100
+
     simple_df, reduced_df = load_results(args.mcmc_output_dir)
+
+    add_mixing_time(simple_df)
     add_exp_mixing_time(simple_df)
+    add_mixing_time(reduced_df)
+
+    full_reduced_df = reduced_df.copy()
+
+    simple_df = simple_df.loc[simple_df['num_solutions'] <= common_num_sols]
+    reduced_df = reduced_df.loc[reduced_df['num_solutions'] <= common_num_sols]
+
     opt_simple_df = get_min_mixing_time_df(simple_df, 'exp_mixing_time_lb')
     opt_reduced_df = get_min_mixing_time_df(reduced_df, 'mixing_time_lb')
-    scatter_solutions_vs_states(opt_simple_df)
-    scatter_mixing_times(opt_simple_df, opt_reduced_df)
-    scatter_mixing_time_ratios(opt_simple_df, opt_reduced_df, bound='upper')
-    connectivity_analysis(reduced_df)
-    plot_simple_column(simple_df, 'solution_density')
-    plot_simple_column(simple_df, 'exp_mixing_time_lb')
-    plot_simple_column(simple_df, 'exp_mixing_time_ub')
+    opt_full_reduced_df_lb = get_min_mixing_time_df(full_reduced_df, 'mixing_time_lb')
+    opt_full_reduced_df_ub = get_min_mixing_time_df(full_reduced_df, 'mixing_time_ub')
+
+    # scatter_solutions_vs_states(opt_simple_df)
+    # scatter_mixing_times(opt_simple_df, opt_reduced_df, 'num_solutions')
+    scatter_mixing_times(opt_simple_df, opt_reduced_df, 'num_elements')
+    # scatter_mixing_time_ratios(opt_simple_df, opt_reduced_df, bound='upper')
+    # scatter_only_reduced(opt_full_reduced_df_ub, 'num_solutions', 'mixing_time_ub')
+    scatter_only_reduced(opt_full_reduced_df_ub, 'num_elements', 'mixing_time_ub')
+    connectivity_analysis(full_reduced_df)
+    # max_mixing_time(full_reduced_df)
+    plot_column(simple_df, 'solution_density', 'gamma')
+    plot_column(simple_df, 'exp_mixing_time_lb', 'gamma')
+    # plot_column(simple_df, 'exp_mixing_time_ub', 'gamma')
+    plot_column(full_reduced_df, 'mixing_time_lb', 'k')
     hist_column(opt_simple_df, 'exp_mixing_time_lb', log=True)
     hist_column(opt_reduced_df, 'mixing_time_ub')
 
