@@ -103,11 +103,12 @@ def build_graph_simple(dist: dict, counts: tuple, gammas: list, total_solutions=
         node = stack.pop()
         if sol_map[node] in first_graph:
             continue
-        if len(node) > fail_time:
+        if sol_map[node] > fail_time:
             print('Too many states. Aborting')
             raise IncompleteError('Failed to find exact solutions')
         if len(first_graph) % 1000 == 0:
-            print('Processed', len(first_graph), 'exact solutions', get_neighbors_simple.num_exact, '/', total_solutions, ('projected {}'.format(int(len(first_graph)*(total_solutions+1)/max(1, get_neighbors_simple.num_exact))) if total_solutions > 0 else ''))
+            projected = int(len(first_graph)*(total_solutions+1)/max(1, get_neighbors_simple.num_exact))
+            print('Processed', len(first_graph), 'exact solutions', get_neighbors_simple.num_exact, '/', total_solutions, ('projected {}'.format(projected) if total_solutions > 0 else ''))
         all_neighbors = get_neighbors_simple(dist, node, counts, sol_map, reverse_sol_map, d_maxes, gammas)
         for gamma in gammas:
             graphs[gamma][sol_map[node]] = all_neighbors[gamma]
