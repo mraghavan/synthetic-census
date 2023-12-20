@@ -71,6 +71,13 @@ def print_sol(sol):
     print()
 
 def get_spectral_gap(G: nx.DiGraph, time_limit: int = 60*10, fallback_tol: float = 1e-6):
+    if len(G) == 1:
+        return 1, 0.0
+    if len(G) <= 3:
+        P = nx.to_numpy_array(G)
+        ls = np.linalg.eigvals(P)
+        print(ls)
+        return 1 - sorted(np.abs(ls), reverse=True)[1], 0.0
     P = nx.to_scipy_sparse_array(G)
     l2 = 0.0
     exact = True
