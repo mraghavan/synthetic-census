@@ -106,18 +106,19 @@ if __name__ == '__main__':
         else:
             print('Gibbs graphs already exist for', row['identifier'])
 
-        if not all_files_exist(args.mcmc_output_dir, simple_fname_template, row['identifier'], gammas):
-            sol = ip_solve(encode_row(row), dist, num_solutions=args.num_sols)
-            num_sols = len(sol)
-            try:
-                simple_graphs = make_simple_graphs(row, dist, gammas, max_sols=num_sols)
-            except IncompleteError as e:
-                print('IncompleteError:', e)
-                failures.append(row['identifier'])
-                continue
-            save_graphs(simple_graphs, simple_fname_template, row['identifier'], gammas, args.mcmc_output_dir)
-        else:
-            print('Simple graphs already exist for', row['identifier'])
+        # if not all_files_exist(args.mcmc_output_dir, simple_fname_template, row['identifier'], gammas):
+            # sol = ip_solve(encode_row(row), dist, num_solutions=args.num_sols)
+            # num_sols = len(sol)
+            # try:
+                # simple_graphs = make_simple_graphs(row, dist, gammas, max_sols=num_sols)
+            # except IncompleteError as e:
+                # print('IncompleteError:', e)
+                # failures.append(row['identifier'])
+                # continue
+            # save_graphs(simple_graphs, simple_fname_template, row['identifier'], gammas, args.mcmc_output_dir)
+        # else:
+            # print('Simple graphs already exist for', row['identifier'])
+
         if not all_files_exist(args.mcmc_output_dir, reduced_fname_template, row['identifier'], ks):
             sol = ip_solve(encode_row(row), dist, num_solutions=args.num_sols)
             sol_map = {v: i for i, v in enumerate(sol)}
