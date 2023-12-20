@@ -21,10 +21,11 @@ parser_builder = ParserBuilder(
          })
 
 AXIS_LABELS = {
-        'solution_density': 'Solution density',
+        'solution_density': r'Solution density ($p_{\gamma}$)',
         'mixing_time': 'Mixing time',
         'num_sols': 'Number of solutions',
         'mixing_time_lb': 'Lower bound on mixing time',
+        'exp_mixing_time_lb': r'Lower bound on expected number of iterations ($N_{\gamma}$)',
         'mixing_time_ub': 'Upper bound on mixing time',
         'num_elements': 'Number of items in each solution',
         }
@@ -86,13 +87,18 @@ def add_exp_mixing_time(df: pd.DataFrame):
 def get_min_mixing_time_df(df: pd.DataFrame, lb_type: str):
     return df.loc[df.groupby(['identifier'])[lb_type].idxmin()]
 
-def scatter_mixing_times(simple_df: pd.DataFrame, reduced_df: pd.DataFrame, x_axis:str):
+def scatter_mixing_times(simple_df: pd.DataFrame, reduced_df: pd.DataFrame, x_axis:str, save_file=''):
     plt.scatter(simple_df[x_axis], simple_df['exp_mixing_time_lb'], label='simple LB')
     plt.scatter(reduced_df[x_axis], reduced_df['mixing_time_lb'], label='reduced LB')
-    plt.xlabel(x_axis)
-    plt.ylabel('expected mixing time LB')
+    if x_axis in AXIS_LABELS:
+        plt.xlabel(AXIS_LABELS[x_axis])
+    else:
+        plt.xlabel(x_axis)
+    plt.ylabel('Lower bound on expected number of iterations')
     plt.yscale('log')
     plt.legend()
+    if save_file:
+        plt.savefig(save_file, dpi=300)
     plt.show()
 
 def scatter_only_reduced(reduced_df: pd.DataFrame, x_axis:str, column: str):
@@ -165,7 +171,7 @@ def plot_column(df: pd.DataFrame, column: str, x_axis: str):
         # only show integer x ticks
         # plt.xticks(np.arange(min(df[x_axis]), max(df[x_axis])+1, 1.0))
         plt.xlabel('$k$')
-    plt.ylabel(column)
+    plt.ylabel(AXIS_LABELS[column] if column in AXIS_LABELS else column)
     plt.yscale('log')
     plt.show()
 
@@ -204,7 +210,7 @@ if __name__ == '__main__':
 
     # scatter_solutions_vs_states(opt_simple_df)
     # scatter_mixing_times(opt_simple_df, opt_reduced_df, 'num_solutions')
-    scatter_mixing_times(opt_simple_df, opt_reduced_df, 'num_elements')
+    scatter_mixing_times(opt_simple_df, opt_reduced_df, 'num_elements', save_file='./img/all_num_elements_mixing_time.png')
     # scatter_mixing_time_ratios(opt_simple_df, opt_reduced_df, bound='upper')
     # scatter_only_reduced(opt_full_reduced_df_ub, 'num_solutions', 'mixing_time_ub')
     scatter_only_reduced(opt_full_reduced_df_ub, 'num_elements', 'mixing_time_ub')
