@@ -1,9 +1,11 @@
 import os
 import pickle
 import numpy as np
-from collections import OrderedDict
+from collections import OrderedDict, Counter
 import sys
 import pandas as pd
+from scipy.optimize import curve_fit
+from scipy.stats import lognorm
 import re
 import matplotlib.pyplot as plt
 # from ..utils.config2 import ParserBuilder
@@ -11,12 +13,13 @@ from .representativeness import add_tex_var, print_all_tex_vars
 
 def evaluate_coverage(task_name: str, synthetic_output_dir: str, num_sols: int):
     funcs = OrderedDict({
-            'total_solutions': lambda pl, ml: len(pl),
-            'last_mass': lambda pl, ml: pl[-1],
-            'last_50_mass': lambda pl, ml: sum(pl[-50:]),
-            'coverage_at_50': lambda pl, ml: sum(pl[:50]),
-            'coverage_at_500': lambda pl, ml: sum(pl[:500]),
-            'sorted_coverage_at_500': lambda pl, ml: sum(sorted(pl, reverse=True)[:500]),
+            'total_solutions': lambda pl, sol: len(pl),
+            'last_mass': lambda pl, sol: pl[-1],
+            'last_50_mass': lambda pl, sol: sum(pl[-50:]),
+            'coverage_at_50': lambda pl, sol: sum(pl[:50]),
+            'coverage_at_500': lambda pl, sol: sum(pl[:500]),
+            'sorted_coverage_at_500': lambda pl, sol: sum(sorted(pl, reverse=True)[:500]),
+            'num_hh': lambda pl, sol: len(sol),
             })
     d = synthetic_output_dir
     big_results_df = pd.DataFrame(columns=list(funcs.keys()))
@@ -30,7 +33,7 @@ def evaluate_coverage(task_name: str, synthetic_output_dir: str, num_sols: int):
                 # Dataframe with dimensions (len(funcs), len(result_list)) with columns given by the keys in funcs filled with zeros
                 results_df = pd.DataFrame(np.zeros((len(result_list), len(funcs))), columns=list(funcs.keys()))
                 for i, results in enumerate(result_list):
-                    results_df.loc[i] = [f(results['prob_list'], num_sols) for f in funcs.values()]
+                    results_df.loc[i] = [f(results['prob_list'], results['sol']) for f in funcs.values()]
                     if len(results['prob_list']) == num_sols:
                         unsorted_probs += results['prob_list']
                         sorted_probs += sorted(results['prob_list'], reverse=True)
@@ -44,6 +47,71 @@ def to_cumulative(probs):
         new_probs[i] = new_probs[i-1] + probs[i]
     return new_probs
 
+def fit_truncated_pl(xs, ys):
+    xs = np.asarray(xs)
+    ys = np.asarray(ys)
+    # Fit log-normal distribution to CCDF data
+    # params = lognorm.fit(xs)
+
+    # Get the fitted parameters
+    # shape, loc, scale = params
+
+    # # Generate a smooth curve using the fitted parameters
+    # smooth_xs = np.linspace(min(xs), max(xs), 100)
+    # fit_ccdf = 1 - lognorm.cdf(smooth_xs, shape, loc=loc, scale=scale)
+
+    # # Plot the original CCDF data and the fitted log-normal distribution
+    # plt.step(xs, ys / ys.max(), label='Original CCDF', where='post')
+    # plt.plot(smooth_xs, fit_ccdf, label=f'Log-Normal Fit: shape={shape:.2f}, scale={scale:.2f}', color='red')
+    # plt.xscale('log')
+    # plt.yscale('log')
+    # plt.xlabel('X')
+    # plt.ylabel('CCDF (P(X >= x))')
+    # plt.legend()
+    # plt.show()
+
+    # x0 = xs[0]
+
+    # def F(x, a, b):
+        # return np.power((x-x0)+1.0, -a) * np.exp(-b*(x-x0))
+
+    # def logF(x, a, b):
+        # return -a*np.log((x-x0)+1.0) + (-b*(x-x0))
+    def power_law(x, a, b):
+        return a * np.power(x, b)
+    def power_law_ccdf(x, a, b):
+        return a * np.power(x, -b)
+    
+
+    # Fit the power-law function to the data
+    params, covariance = curve_fit(power_law_ccdf, xs, ys)
+
+
+    # Get the fitted parameters
+    a, b = params
+    smooth_xs = np.linspace(min(xs), max(xs), 100)
+    # fit_ys = power_law(smooth_xs, a, b)
+    fit_ccdf = power_law_ccdf(smooth_xs, a, b)
+
+    plt.scatter(xs, ys, label='Original Data')
+    # plt.step(xs, ys, label='Original Cumulative Data', where='post')
+    plt.plot(smooth_xs, fit_ccdf, label=f'Power Law Fit: a={a:.2f}, b={b:.2f}', color='red')
+    # plt.plot(smooth_xs, fit_ys, label=f'Power Law Fit: a={a:.2f}, b={b:.2f}', color='red')
+    plt.xscale('log')
+    plt.yscale('log')
+    # plt.ylim(bottom=0.0000001)
+    plt.xlabel(r'$s$')
+    plt.ylabel(r'Fraction of blocks with $|\mathcal{X}| \geq s$')
+    plt.legend()
+    plt.tight_layout()
+
+    # popt, pcov = curve_fit(F, xs, ys)
+    # print(popt)
+
+    # plt.plot(xs, ys, 'b*', label='data')
+    # plt.plot(xs, logF(xs, *popt), 'g-', label='fit')
+    # plt.show()
+
 def print_results(
         state: str,
         synthetic_output_dir: str,
@@ -53,7 +121,15 @@ def print_results(
     task_name = task_name
     if task_name != '':
         task_name += '_'
-    results_df, unsorted_probs, sorted_probs = evaluate_coverage(task_name, synthetic_output_dir, num_sols)
+    fname = os.path.join(synthetic_output_dir, task_name + 'sampling_results.pkl')
+    results_df, unsorted_probs, sorted_probs = None, None, None
+    if os.path.exists(fname):
+        with open(fname, 'rb') as f:
+            results_df, unsorted_probs, sorted_probs = pickle.load(f)
+    else:
+        results_df, unsorted_probs, sorted_probs = evaluate_coverage(task_name, synthetic_output_dir, num_sols)
+        with open(fname, 'wb') as f:
+            pickle.dump((results_df, unsorted_probs, sorted_probs), f)
     print(results_df.describe(), file=sys.stderr)
     solution_counts = results_df['total_solutions'].values
     results_df['total_solutions'].hist()
@@ -61,6 +137,53 @@ def print_results(
     plt.savefig(task_name + 'total_solutions.png')
     plt.clf()
     # Count the number of rows where total_solutions < num_sols
+    
+    ub = 50
+    results_df['num_hh'].describe()
+    num_hh = results_df[results_df['num_hh'] <= ub]['num_hh'].values
+    plt.hist(num_hh, bins=ub)
+    plt.xlabel('Number of households')
+    plt.xlim(left=0, right=ub)
+    plt.show()
+    print(f'Greater than {ub}', len(results_df[results_df['num_hh'] > ub])/len(results_df))
+
+    # histogram = Counter()
+    # for count in results_df['num_hh'].values:
+        # histogram[count] += 1
+    # # del histogram[num_sols]
+    # values, counts = zip(*histogram.items())
+
+    # # Sort values in descending order
+    # sorted_values = np.array(sorted(values, reverse=True))
+
+    # # Calculate cumulative sums of counts
+    # vals = np.array([histogram[val] for val in sorted_values])
+    # vals = vals / vals.sum()
+    # cumulative_sums = np.cumsum(vals)
+    # fit_truncated_pl(sorted_values, cumulative_sums)
+    # # plt.savefig(f'./img/{task_name}power_law_solution_count.png', dpi=300)
+    # plt.show()
+
+
+
+    # histogram = Counter({k: 0 for k in range(1, num_sols+1)})
+    histogram = Counter()
+    for count in solution_counts:
+        histogram[count] += 1
+    # del histogram[num_sols]
+    values, counts = zip(*histogram.items())
+
+    # Sort values in descending order
+    sorted_values = np.array(sorted(values, reverse=True))
+
+    # Calculate cumulative sums of counts
+    vals = np.array([histogram[val] for val in sorted_values])
+    vals = vals / vals.sum()
+    cumulative_sums = np.cumsum(vals)
+    fit_truncated_pl(sorted_values, cumulative_sums)
+    plt.savefig(f'./img/{task_name}power_law_solution_count.png', dpi=300)
+    plt.show()
+    
 
     add_tex_var('NumSolutions', num_sols)
     num_blocks = results_df.shape[0]
