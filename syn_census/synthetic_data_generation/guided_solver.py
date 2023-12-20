@@ -1,7 +1,7 @@
 from math import log
 from collections import OrderedDict, Counter
 from ..utils.census_utils import has_valid_age_data
-from ..utils.knapsack_utils import normalize, exp_normalize, perms_to_combs
+from ..utils.knapsack_utils import normalize, exp_normalize, perms_to_combs, tup_sum, tup_minus
 from ..utils.ip_distribution import ip_solve
 from ..utils.encoding import encode_row, get_num_hhs, MAX_LEVEL
 
@@ -29,6 +29,17 @@ def recompute_probs(sol, dist):
     new_sol = OrderedDict()
     for seq in sol:
         new_sol[seq] = sum(log(dist[hh]) for hh in seq) + log(perms_to_combs(seq))
+    return exp_normalize(new_sol)
+
+def recompute_probs_gamma(sol, dist, counts, gamma):
+    if len(sol) == 0:
+        return OrderedDict()
+    new_sol = OrderedDict()
+    for seq in sol:
+        if seq:
+            new_sol[seq] = sum(log(dist[hh]) for hh in seq) + log(perms_to_combs(seq)) - gamma*sum(tup_minus(counts, tup_sum(seq)))
+        else:
+            new_sol[seq] = -gamma * sum(counts)
     return exp_normalize(new_sol)
 
 def reduce_dist(dist, level, use_age):

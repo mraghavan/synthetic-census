@@ -118,6 +118,7 @@ class MCMCSampler:
             return None
 
     def mcmc_solve(self, counts: tuple):
+        # TODO Gibbs
         # get initial solution using ip_solve
         current_solution = ip_solve(counts, self.dist, num_solutions=1)[0]
         # print('Initial solution:', current_solution)
@@ -212,6 +213,7 @@ def counter_to_tuple(counter: Counter):
     return tuple(sorted(list(counter.elements())))
 
 class SimpleMCMCSampler:
+    # TODO Gibbs
     def __init__(self, dist: dict, gamma=1.0):
         self.dist = dist
         self.gamma = gamma
