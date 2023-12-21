@@ -78,7 +78,14 @@ def get_spectral_gap(G: nx.DiGraph, time_limit: int = 60*10, fallback_tol: float
         ls = np.linalg.eigvals(P)
         print(ls)
         return 1 - sorted(np.abs(ls), reverse=True)[1], 0.0
-    P = nx.to_scipy_sparse_matrix(G)
+    networkx_version = tuple(map(int, nx.__version__.split('.')))
+    min_required_version = (3, 0, 0)
+    if networkx_version >= min_required_version:
+        # Works for 3.2.1
+        P = nx.to_scipy_sparse_array(G, format='csr')
+    else:
+        # Works for 2.5.1
+        P = nx.to_scipy_sparse_matrix(G)
     l2 = 0.0
     exact = True
     # Consider just always using tolerance?
