@@ -51,6 +51,15 @@ def all_files_exist(file_dir: str, template: str, identifier: str, params: list)
             return False
     return True
 
+def get_ids_from_file(fname: str, task: int, num_tasks: int):
+    with open(fname, 'r') as f:
+        full_random_sample_of_block_ids = f.read().splitlines()
+    # get the IDs for this task
+    step_size = len(full_random_sample_of_block_ids) // num_tasks
+    random_sample_of_block_ids = set(full_random_sample_of_block_ids[(task-1) * step_size: task * step_size])
+    return random_sample_of_block_ids
+
+
 def save_graphs(graphs: dict, fname_template: str, identifier: str, params: list, file_dir: str):
     for param, graph in graphs.items():
         fname = os.path.join(file_dir, fname_template.format(identifier=identifier, param=param))
@@ -65,12 +74,7 @@ if __name__ == '__main__':
     print(f'Task {args.task} of {args.num_tasks}')
 
     in_file = os.path.join(args.mcmc_output_dir, 'sampled_block_ids.txt')
-    full_random_sample_of_block_ids = []
-    with open(in_file, 'r') as f:
-        full_random_sample_of_block_ids = f.read().splitlines()
-    # get the IDs for this task
-    step_size = len(full_random_sample_of_block_ids) // args.num_tasks
-    random_sample_of_block_ids = set(full_random_sample_of_block_ids[(args.task-1) * step_size: args.task * step_size])
+    random_sample_of_block_ids = get_ids_from_file(in_file, args.task, args.num_tasks)
 
 
     df = pd.read_csv(args.block_clean_file)

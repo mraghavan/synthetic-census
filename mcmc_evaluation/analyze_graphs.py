@@ -7,6 +7,7 @@ import re
 import pandas as pd
 import networkx as nx
 sys.path.append('../')
+from build_graphs import get_ids_from_file
 from syn_census.utils.config2 import ParserBuilder
 from syn_census.preprocessing.build_micro_dist import read_microdata
 from syn_census.utils.encoding import encode_hh_dist, encode_row
@@ -20,6 +21,8 @@ parser_builder = ParserBuilder(
          'block_clean_file': True,
          'mcmc_output_dir': True,
          'num_sols': False,
+         'task': False,
+         'num_tasks': False,
          })
 
 simple_re = re.compile(r'(\d+-\d+-\d+)_(\d+(.\d+)?)_simple_graph.xz')
@@ -126,6 +129,23 @@ def do_reduced_analyses(graph: dict, sol_map: dict):
     results.update(do_common_analyses(G))
     return results
 
+def get_files_matching_ids(ids: set, results_dir: str):
+    simple_files = []
+    gibbs_files = []
+    reduced_files = []
+    for fname in os.listdir(results_dir):
+        for identifier in ids:
+            simple_re = re.compile(r'%s_(\d+(.\d+)?)_simple_graph.xz' % identifier)
+            gibbs_re = re.compile(r'%s_(\d+(.\d+)?)_gibbs_graph.xz' % identifier)
+            reduced_re = re.compile(r'%s_(\d+)_reduced_graph.xz' % identifier)
+            if simple_re.match(fname):
+                simple_files.append(fname)
+            elif gibbs_re.match(fname):
+                gibbs_files.append(fname)
+            elif reduced_re.match(fname):
+                reduced_files.append(fname)
+    return sorted(simple_files), sorted(gibbs_files), sorted(reduced_files)
+
 if __name__ == '__main__':
     parser_builder.parse_args()
     print(parser_builder.args)
@@ -137,7 +157,12 @@ if __name__ == '__main__':
     print(df.head())
     dist = encode_hh_dist(read_microdata(args.micro_file))
 
-    simple_files, gibbs_files, reduced_files = get_all_matching_files(args.mcmc_output_dir)
+    if args.num_tasks == 1:
+        simple_files, gibbs_files, reduced_files = get_all_matching_files(args.mcmc_output_dir)
+    else:
+        in_file = os.path.join(args.mcmc_output_dir, 'sampled_block_ids.txt')
+        ids = get_ids_from_file(in_file, args.task, args.num_tasks)
+        simple_files, gibbs_files, reduced_files = get_files_matching_ids(ids, args.mcmc_output_dir)
     print(f'Found {len(simple_files)} simple files, {len(gibbs_files)} gibbs files, and {len(reduced_files)} reduced files')
 
     simple_results_template = '{identifier}_{param}_simple_results.pkl'
