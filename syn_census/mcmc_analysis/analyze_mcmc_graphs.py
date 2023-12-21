@@ -39,7 +39,7 @@ def is_connected(graph: nx.DiGraph):
         stack.extend([n for n in graph.neighbors(node)])
     return len(seen) == len(graph)
 
-def mixing_test(P, sampler: MCMCSampler | SimpleMCMCSampler, counts: tuple, sol_map: dict, sol, num_tries=10000):
+def mixing_test(P, sampler, counts: tuple, sol_map: dict, sol, num_tries=10000):
     actual = P[[sol_map[sol]]]
     # print('Actual transitions', actual)
     # csr matrix of shape (1, P.shape[1])
