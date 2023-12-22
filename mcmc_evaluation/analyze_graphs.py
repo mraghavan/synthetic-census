@@ -149,6 +149,14 @@ def get_files_matching_ids(ids: set, results_dir: str):
                 reduced_files.append(fname)
     return sorted(simple_files), sorted(gibbs_files), sorted(reduced_files)
 
+simple_results_template = '{identifier}_{param}_simple_results.pkl'
+gibbs_results_template = '{identifier}_{param}_gibbs_results.pkl'
+reduced_results_template = '{identifier}_{param}_reduced_results.pkl'
+results_templates = {
+        'simple': simple_results_template,
+        'gibbs': gibbs_results_template,
+        'reduced': reduced_results_template,
+        }
 if __name__ == '__main__':
     parser_builder.parse_args()
     print(parser_builder.args)
@@ -171,14 +179,6 @@ if __name__ == '__main__':
     # print(f'Found {len(simple_files)} simple files, {len(gibbs_files)} gibbs files, and {len(reduced_files)} reduced files')
     print('Jobs', jobs)
 
-    simple_results_template = '{identifier}_{param}_simple_results.pkl'
-    gibbs_results_template = '{identifier}_{param}_gibbs_results.pkl'
-    reduced_results_template = '{identifier}_{param}_reduced_results.pkl'
-    results_templates = {
-            'simple': simple_results_template,
-            'gibbs': gibbs_results_template,
-            'reduced': reduced_results_template,
-            }
     param_types = {
             'simple': float,
             'gibbs': float,

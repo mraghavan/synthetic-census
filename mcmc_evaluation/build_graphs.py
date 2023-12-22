@@ -4,6 +4,7 @@ import pickle
 import lzma
 import pandas as pd
 from collections import OrderedDict
+from math import ceil, floor
 # import numpy as np
 # import re
 sys.path.append('../')
@@ -55,6 +56,7 @@ def make_reduced_graphs(row: pd.Series, dist: dict, ks: list, **kwargs):
 def all_files_exist(file_dir: str, template: str, identifier: str, params: list):
     for param in params:
         if not os.path.exists(file_dir + template.format(identifier=identifier, param=param)):
+            # print('File', file_dir + template.format(identifier=identifier, param=param), 'does not exist')
             return False
     return True
 
@@ -62,7 +64,7 @@ def get_jobs_from_file(fname: str, task: int, num_tasks: int):
     with open(fname, 'r') as f:
         full_random_sample_of_block_ids = f.read().splitlines()
     # get the IDs for this task
-    step_size = len(full_random_sample_of_block_ids) // num_tasks
+    step_size = ceil(len(full_random_sample_of_block_ids) / num_tasks)
     random_sample_of_block_ids = full_random_sample_of_block_ids[(task-1) * step_size: task * step_size]
     return random_sample_of_block_ids
 
@@ -113,6 +115,7 @@ if __name__ == '__main__':
             'simple': make_simple_graphs,
             'reduced': make_reduced_graphs,
             }
+    # failure_file = os.path.join(args.mcmc_output_dir, f'failures{args.task}.{args.num_tasks}.txt')
     failure_file = os.path.join(args.mcmc_output_dir, f'failures{args.task}.txt')
     failures = []
 
@@ -142,6 +145,6 @@ if __name__ == '__main__':
         else:
             print(job_type, 'graphs already exist for', row['identifier'])
 
-    with open(failure_file, 'a') as f:
+    with open(failure_file, 'w') as f:
         for failure in failures:
             f.write(failure + '\n')
