@@ -34,23 +34,20 @@ def get_neighbors_reduced(dist: dict, s: tuple, sol_map: dict, k: int):
     cache = set()
     nchoosek = comb(len(s), k)
     total_weight = 0
-    x_prob = get_log_prob(s, dist)
+    # x_prob = get_log_prob(s, dist)
+    elements = tuple(dist.keys())
     for combo in combinations(s, k):
-        if tuple(sorted(combo)) in cache:
+        tup_combo = tuple(sorted(combo))
+        if tup_combo in cache:
             continue
-        solutions = ip_enumerate(tup_sum(combo), tuple(dist.keys()), num_solutions=len(sol_map))
-        cache.add(tuple(sorted(combo)))
+        solutions = ip_enumerate(tup_sum(combo), elements, num_solutions=len(sol_map))
+        cache.add(tup_combo)
         assert len(solutions) > 0
         all_sols = []
         for sol in solutions:
             neighbor = list((Counter(s) - Counter(combo) + Counter(sol)).elements())
             neighbor = tuple(sorted(neighbor))
-            # deal with self-loops later
-            # if s == neighbor:
-                # continue
             if neighbor not in sol_map:
-                # sol_map[neighbor] = len(sol_map)
-                # print('Adding to sol_map', len(sol_map))
                 print(tup_sum(s), tup_sum(neighbor))
                 print(tup_minus(tup_sum(s), tup_sum(neighbor)))
                 raise ValueError('neighbor not in sol_map')
@@ -62,15 +59,6 @@ def get_neighbors_reduced(dist: dict, s: tuple, sol_map: dict, k: int):
                 neighbors[sol_map[sol]] = {'weight': prob}
             else:
                 neighbors[sol_map[sol]]['weight'] += prob
-            # xprime_prob = get_log_prob(neighbor, dist)
-            # ratio = np.exp(xprime_prob - x_prob)
-            # # factor of 2 because it's lazy
-            # prob = 1/(2*(len(solutions)-1)*nchoosek) * min(1, ratio)
-            # if sol_map[neighbor] not in neighbors:
-                # neighbors[sol_map[neighbor]] = {'weight': prob}
-            # else:
-                # neighbors[sol_map[neighbor]]['weight'] += prob
-            # total_weight += prob
     del neighbors[sol_map[s]]
     total_weight = sum([v['weight'] for v in neighbors.values()])
     assert total_weight <= 0.5
@@ -83,8 +71,6 @@ def build_graph_reduced(dist: dict, sol, sol_map: dict, k: int):
         graph[sol_map[s]] = get_neighbors_reduced(dist, s, sol_map, k)
         if sol_map[s] % 50 == 0:
             print(sol_map[s])
-        # print(sol_map[s], graph[sol_map[s]])
-        # print('len', len(sol_map))
     return graph, sol_map
 
 def get_d_maxes(dist: dict, counts: tuple):
