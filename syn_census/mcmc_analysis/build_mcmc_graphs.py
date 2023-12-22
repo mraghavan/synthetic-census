@@ -1,6 +1,6 @@
 import pandas as pd
 from itertools import combinations
-from collections import Counter
+from collections import Counter, OrderedDict
 from scipy.special import comb
 from scipy.linalg import eig
 import numpy as np
@@ -98,9 +98,9 @@ def get_d_maxes(dist: dict, counts: tuple):
         d_maxes[item] = d_max
     return d_maxes
 
-def build_graph_gibbs(dist: dict, counts: tuple, gammas: list, total_solutions=0, fail_time = 1000000):
+def build_graph_gibbs(dist: OrderedDict, counts: tuple, gammas: list, total_solutions=0, fail_time = 1000000):
     empty_sol = tuple()
-    # same sol_map for each gamma
+    # one sol_map for each gamma
     sol_map = {}
     reverse_sol_map = {}
     sol_map[empty_sol] = len(sol_map)
@@ -110,8 +110,6 @@ def build_graph_gibbs(dist: dict, counts: tuple, gammas: list, total_solutions=0
     first_graph = graphs[first_gamma]
     stack = [empty_sol]
     get_neighbors_gibbs.num_exact = 0
-    d_maxes = get_d_maxes(dist, counts)
-    dist = {k: v for k, v in dist.items() if d_maxes[k] > 0}
     while len(stack) > 0:
         node = stack.pop()
         if sol_map[node] in first_graph:
@@ -230,7 +228,7 @@ get_neighbors_gibbs.num_exact = 0
     # return neighbors_by_gamma
 # get_neighbors_gibbs.num_exact = 0
 
-def build_graph_simple(dist: dict, counts: tuple, gammas: list, total_solutions=0, fail_time = 1000000):
+def build_graph_simple(dist: OrderedDict, counts: tuple, gammas: list, total_solutions=0, fail_time = 1000000):
     empty_sol = tuple()
     # same sol_map for each gamma
     sol_map = {}
@@ -243,7 +241,7 @@ def build_graph_simple(dist: dict, counts: tuple, gammas: list, total_solutions=
     stack = [empty_sol]
     get_neighbors_simple.num_exact = 0
     d_maxes = get_d_maxes(dist, counts)
-    dist = {k: v for k, v in dist.items() if d_maxes[k] > 0}
+    dist = OrderedDict({k: v for k, v in dist.items() if d_maxes[k] > 0})
     while len(stack) > 0:
         node = stack.pop()
         if sol_map[node] in first_graph:
