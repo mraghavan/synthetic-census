@@ -1,12 +1,18 @@
 #!/bin/bash
 #SBATCH -c 1                # Number of cores (-c)
 #SBATCH -t 0-0:15          # Runtime in D-HH:MM, minimum of 10 minutes
-#SBATCH -p serial_requeue   # Partition to submit to
+#SBATCH -p sched_mit_sloan_batch # Partition to submit to
 #SBATCH --mem=1000           # Memory pool for all cores (see also --mem-per-cpu)
 #SBATCH -o out_files/samp.%j.out  # File to which STDOUT will be written, %j inserts jobid
 #SBATCH -e out_files/samp.%j.err  # File to which STDERR will be written, %j inserts jobid
 #SBATCH --mail-type=END
-[ "$#" -eq 1 ] || { echo "No task name given" ; exit 1 ; }
-module load python/3.8.5-fasrc01
+if [ "$#" -eq 2 ]; then
+    PARAM_FILE="$1"
+    TASK_NAME=$2
+else
+    echo Missing arguments PARAM_FILE or TASK_NAME
+    exit 1
+fi
+module load sloan/python/modules/python-3.6/gurobipy/9.0.1
 echo Reading from job $1
-python3 aggregate_data_shards --from_params AL_params.json --task_name $1
+python3 aggregate_data_shards --from_params "$1" --task_name $2
