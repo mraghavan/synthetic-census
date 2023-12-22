@@ -2,7 +2,7 @@ import sys
 import os
 import pickle
 import numpy as np
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import pandas as pd
 import re
 from collections import OrderedDict
@@ -44,20 +44,20 @@ def get_relevant_blocks(results_dir: str, task_name: str, max_num_sols: int):
     results_df = pd.DataFrame(results_list)
     return results_df
 
-def plot_results(results_df: pd.DataFrame, max_sols: int):
-    # plot num_elements vs fraction with num_sols < max_sols
-    elements = []
-    fractions = []
-    sizes = []
-    for num_elements in results_df['num_elements'].unique():
-        df = results_df[results_df['num_elements'] == num_elements]
-        elements.append(num_elements)
-        fractions.append(sum(df['num_sols'] < max_sols) / len(df))
-        sizes.append(len(df))
-    plt.scatter(elements, fractions, s=np.array(sizes)/8)
-    plt.xlabel('Number of households')
-    plt.ylabel(f'Fraction of blocks with < {max_sols} solutions')
-    plt.show()
+# def plot_results(results_df: pd.DataFrame, max_sols: int):
+    # # plot num_elements vs fraction with num_sols < max_sols
+    # elements = []
+    # fractions = []
+    # sizes = []
+    # for num_elements in results_df['num_elements'].unique():
+        # df = results_df[results_df['num_elements'] == num_elements]
+        # elements.append(num_elements)
+        # fractions.append(sum(df['num_sols'] < max_sols) / len(df))
+        # sizes.append(len(df))
+    # plt.scatter(elements, fractions, s=np.array(sizes)/8)
+    # plt.xlabel('Number of households')
+    # plt.ylabel(f'Fraction of blocks with < {max_sols} solutions')
+    # plt.show()
 
 def get_common_sample(filtered_df: pd. DataFrame, num_samples: int):
     # get a sample of num_samples common blocks
