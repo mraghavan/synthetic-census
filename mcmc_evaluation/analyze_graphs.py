@@ -7,7 +7,7 @@ import re
 import pandas as pd
 import networkx as nx
 sys.path.append('../')
-from build_graphs import get_ids_from_file
+from build_graphs import get_jobs_from_file, params, templates
 from syn_census.utils.config2 import ParserBuilder
 from syn_census.preprocessing.build_micro_dist import read_microdata
 from syn_census.utils.encoding import encode_hh_dist, encode_row
@@ -71,6 +71,7 @@ def do_simple_analyses(graph: dict, sol_map: dict, dist: dict, counts: tuple, ga
     reverse_sol_map = {v: k for k, v in sol_map.items()}
     results['solution_density'], results['num_solutions'] = get_solution_density(G, gamma, dist, reverse_sol_map, counts)
     results['num_elements'] = counts[-1]
+    results['gamma'] = gamma
     results.update(do_common_analyses(G))
     return results
 
@@ -116,16 +117,18 @@ def do_gibbs_analyses(graph: dict, sol_map: dict, dist: dict, counts: tuple, gam
     reverse_sol_map = {v: k for k, v in sol_map.items()}
     results['solution_density'], results['num_solutions'] = get_solution_density(G, gamma, dist, reverse_sol_map, counts)
     results['num_elements'] = counts[-1]
+    results['gamma'] = gamma
     results.update(do_common_analyses(G))
     return results
 
-def do_reduced_analyses(graph: dict, sol_map: dict):
+def do_reduced_analyses(graph: dict, sol_map: dict, dist: dict, counts: tuple, k: int):
     results = {}
     G = nx.DiGraph(graph)
     # check_stationary_dist_reduced(G, dist, sol_map)
     results['is_connected'] = is_connected(G)
     results['num_solutions'] = len(G)
     results['num_elements'] = len(list(sol_map.keys())[0])
+    results['k'] = k
     results.update(do_common_analyses(G))
     return results
 
@@ -157,78 +160,127 @@ if __name__ == '__main__':
     print(df.head())
     dist = encode_hh_dist(read_microdata(args.micro_file))
 
-    if args.num_tasks == 1:
-        simple_files, gibbs_files, reduced_files = get_all_matching_files(args.mcmc_output_dir)
-    else:
-        in_file = os.path.join(args.mcmc_output_dir, 'sampled_block_ids.txt')
-        ids = get_ids_from_file(in_file, args.task, args.num_tasks)
-        simple_files, gibbs_files, reduced_files = get_files_matching_ids(ids, args.mcmc_output_dir)
-    print(f'Found {len(simple_files)} simple files, {len(gibbs_files)} gibbs files, and {len(reduced_files)} reduced files')
+    # if args.num_tasks == 1:
+        # simple_files, gibbs_files, reduced_files = get_all_matching_files(args.mcmc_output_dir)
+    # else:
+        # in_file = os.path.join(args.mcmc_output_dir, 'sampled_block_ids.txt')
+        # ids = get_ids_from_file(in_file, args.task, args.num_tasks)
+        # simple_files, gibbs_files, reduced_files = get_files_matching_ids(ids, args.mcmc_output_dir)
+    jobs = get_jobs_from_file(args.mcmc_output_dir, args.task, args.num_tasks)
+    # print(f'Found {len(simple_files)} simple files, {len(gibbs_files)} gibbs files, and {len(reduced_files)} reduced files')
+    print('Jobs', jobs)
 
     simple_results_template = '{identifier}_{param}_simple_results.pkl'
     gibbs_results_template = '{identifier}_{param}_gibbs_results.pkl'
     reduced_results_template = '{identifier}_{param}_reduced_results.pkl'
+    results_templates = {
+            'simple': simple_results_template,
+            'gibbs': gibbs_results_template,
+            'reduced': reduced_results_template,
+            }
+    param_types = {
+            'simple': float,
+            'gibbs': float,
+            'reduced': int,
+            }
+    analysis_funcs = {
+            'simple': do_simple_analyses,
+            'gibbs': do_gibbs_analyses,
+            'reduced': do_reduced_analyses,
+            }
 
-    for simple_fname in simple_files:
-        identifier, param = get_simple_params(simple_fname)
-        results_fname = os.path.join(
-                args.mcmc_output_dir,
-                simple_results_template.format(identifier=identifier, param=param)
-                )
-        if os.path.exists(results_fname):
-            print(f'Simple results for {identifier} with gamma={param} already exist')
-            continue
-        print(f'Analyzing simple {identifier} with gamma={param}')
-        counts = encode_row(df[df['identifier'] == identifier].iloc[0])
-        simple_dist = {k: v for k, v in dist.items() if is_eligible(k, counts)}
-        gamma = float(param)
-        graph, sol_map = None, None
-        with lzma.open(os.path.join(args.mcmc_output_dir, simple_fname), 'rb') as f:
-            graph, sol_map = pickle.load(f)
-        print(f'Graph has {len(graph)} nodes')
-        results = do_simple_analyses(graph, sol_map, simple_dist, counts, gamma)
-        with open(results_fname, 'wb') as f:
-            print(f'Writing results to {results_fname}')
-            pickle.dump(results, f)
+    for job in jobs:
+        identifier, job_type = job.split(',')
+        param = params[job_type]
+        template = templates[job_type]
+        for p in param:
+            graph_fname = os.path.join(
+                    args.mcmc_output_dir,
+                    template.format(identifier=identifier, param=p)
+                    )
+            results_fname = os.path.join(
+                    args.mcmc_output_dir,
+                    results_templates[job_type].format(identifier=identifier, param=p)
+                    )
+            if os.path.exists(results_fname):
+                print(f'Results for {identifier}, {job_type} with param {p} already exist')
+                continue
+            if not os.path.exists(graph_fname):
+                print(f'Graph for {identifier}, {job_type} with param {p} does not exist')
+                continue
+            print(f'Analyzing {identifier}, {job_type} with param {p}')
+            counts = encode_row(df[df['identifier'] == identifier].iloc[0])
+            small_dist = {k: v for k, v in dist.items() if is_eligible(k, counts)}
+            p = param_types[job_type](p)
+            graph, sol_map = None, None
+            with lzma.open(graph_fname, 'rb') as f:
+                graph, sol_map = pickle.load(f)
+            print(f'Graph has {len(graph)} nodes')
+            results = analysis_funcs[job_type](graph, sol_map, small_dist, counts, p)
+            with open(results_fname, 'wb') as f:
+                print(f'Writing results to {results_fname}')
+                pickle.dump(results, f)
 
-    for gibbs_fname in gibbs_files:
-        identifier, param = get_gibbs_params(gibbs_fname)
-        results_fname = os.path.join(
-                args.mcmc_output_dir,
-                gibbs_results_template.format(identifier=identifier, param=param)
-                )
-        if os.path.exists(results_fname):
-            print(f'Simple results for {identifier} with gamma={param} already exist')
-            continue
-        print(f'Analyzing gibbs {identifier} with gamma={param}')
-        counts = encode_row(df[df['identifier'] == identifier].iloc[0])
-        gibbs_dist = {k: v for k, v in dist.items() if is_eligible(k, counts)}
-        gamma = float(param)
-        graph, sol_map = None, None
-        with lzma.open(os.path.join(args.mcmc_output_dir, gibbs_fname), 'rb') as f:
-            graph, sol_map = pickle.load(f)
-        print(f'Graph has {len(graph)} nodes')
-        results = do_gibbs_analyses(graph, sol_map, gibbs_dist, counts, gamma)
-        with open(results_fname, 'wb') as f:
-            print(f'Writing results to {results_fname}')
-            pickle.dump(results, f)
+    # for simple_fname in simple_files:
+        # identifier, param = get_simple_params(simple_fname)
+        # results_fname = os.path.join(
+                # args.mcmc_output_dir,
+                # simple_results_template.format(identifier=identifier, param=param)
+                # )
+        # if os.path.exists(results_fname):
+            # print(f'Simple results for {identifier} with gamma={param} already exist')
+            # continue
+        # print(f'Analyzing simple {identifier} with gamma={param}')
+        # counts = encode_row(df[df['identifier'] == identifier].iloc[0])
+        # simple_dist = {k: v for k, v in dist.items() if is_eligible(k, counts)}
+        # gamma = float(param)
+        # graph, sol_map = None, None
+        # with lzma.open(os.path.join(args.mcmc_output_dir, simple_fname), 'rb') as f:
+            # graph, sol_map = pickle.load(f)
+        # print(f'Graph has {len(graph)} nodes')
+        # results = do_simple_analyses(graph, sol_map, simple_dist, counts, gamma)
+        # with open(results_fname, 'wb') as f:
+            # print(f'Writing results to {results_fname}')
+            # pickle.dump(results, f)
 
-    for reduced_fname in reduced_files:
-        identifier, param = get_reduced_params(reduced_fname)
-        results_fname = os.path.join(
-                args.mcmc_output_dir,
-                reduced_results_template.format(identifier=identifier, param=param)
-                )
-        if os.path.exists(results_fname):
-            print(f'Reduced results for {identifier} with k={param} already exist')
-            continue
-        print(f'Analyzing reduced {identifier} with k={param}')
-        k = int(param)
-        graph, sol_map = None, None
-        with lzma.open(os.path.join(args.mcmc_output_dir, reduced_fname), 'rb') as f:
-            graph, sol_map = pickle.load(f)
-        print(f'Graph has {len(graph)} nodes')
-        results = do_reduced_analyses(graph, sol_map)
-        with open(results_fname, 'wb') as f:
-            print(f'Writing results to {results_fname}')
-            pickle.dump(results, f)
+    # for gibbs_fname in gibbs_files:
+        # identifier, param = get_gibbs_params(gibbs_fname)
+        # results_fname = os.path.join(
+                # args.mcmc_output_dir,
+                # gibbs_results_template.format(identifier=identifier, param=param)
+                # )
+        # if os.path.exists(results_fname):
+            # print(f'Simple results for {identifier} with gamma={param} already exist')
+            # continue
+        # print(f'Analyzing gibbs {identifier} with gamma={param}')
+        # counts = encode_row(df[df['identifier'] == identifier].iloc[0])
+        # gibbs_dist = {k: v for k, v in dist.items() if is_eligible(k, counts)}
+        # gamma = float(param)
+        # graph, sol_map = None, None
+        # with lzma.open(os.path.join(args.mcmc_output_dir, gibbs_fname), 'rb') as f:
+            # graph, sol_map = pickle.load(f)
+        # print(f'Graph has {len(graph)} nodes')
+        # results = do_gibbs_analyses(graph, sol_map, gibbs_dist, counts, gamma)
+        # with open(results_fname, 'wb') as f:
+            # print(f'Writing results to {results_fname}')
+            # pickle.dump(results, f)
+
+    # for reduced_fname in reduced_files:
+        # identifier, param = get_reduced_params(reduced_fname)
+        # results_fname = os.path.join(
+                # args.mcmc_output_dir,
+                # reduced_results_template.format(identifier=identifier, param=param)
+                # )
+        # if os.path.exists(results_fname):
+            # print(f'Reduced results for {identifier} with k={param} already exist')
+            # continue
+        # print(f'Analyzing reduced {identifier} with k={param}')
+        # k = int(param)
+        # graph, sol_map = None, None
+        # with lzma.open(os.path.join(args.mcmc_output_dir, reduced_fname), 'rb') as f:
+            # graph, sol_map = pickle.load(f)
+        # print(f'Graph has {len(graph)} nodes')
+        # results = do_reduced_analyses(graph, sol_map)
+        # with open(results_fname, 'wb') as f:
+            # print(f'Writing results to {results_fname}')
+            # pickle.dump(results, f)

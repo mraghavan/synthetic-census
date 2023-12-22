@@ -74,6 +74,23 @@ def save_graphs(graphs: dict, fname_template: str, identifier: str, file_dir: st
             print('Writing to', fname)
             pickle.dump(graph, f)
 
+gammas = [0.0, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 1.0]
+ks = [2, 3, 4]
+simple_fname_template = '{identifier}_{param}_simple_graph.xz'
+gibbs_fname_template = '{identifier}_{param}_gibbs_graph.xz'
+reduced_fname_template = '{identifier}_{param}_reduced_graph.xz'
+
+templates = {
+    'simple': simple_fname_template,
+    'gibbs': gibbs_fname_template,
+    'reduced': reduced_fname_template,
+    }
+params = {
+    'simple': gammas,
+    'gibbs': gammas,
+    'reduced': ks,
+    }
+
 if __name__ == '__main__':
     parser_builder.parse_args()
     print(parser_builder.args)
@@ -91,22 +108,6 @@ if __name__ == '__main__':
     print(df.head())
     dist = encode_hh_dist(read_microdata(args.micro_file))
     print('Number of jobs', len(jobs))
-
-    gammas = [0.0, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 1.0]
-    ks = [2, 3, 4]
-    simple_fname_template = '{identifier}_{param}_simple_graph.xz'
-    gibbs_fname_template = '{identifier}_{param}_gibbs_graph.xz'
-    reduced_fname_template = '{identifier}_{param}_reduced_graph.xz'
-    templates = {
-        'simple': simple_fname_template,
-        'gibbs': gibbs_fname_template,
-        'reduced': reduced_fname_template,
-        }
-    params = {
-        'simple': gammas,
-        'gibbs': gammas,
-        'reduced': ks,
-        }
     graph_funcs = {
             'gibbs': make_gibbs_graphs,
             'simple': make_simple_graphs,
