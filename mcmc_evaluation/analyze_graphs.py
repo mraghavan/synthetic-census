@@ -166,7 +166,8 @@ if __name__ == '__main__':
         # in_file = os.path.join(args.mcmc_output_dir, 'sampled_block_ids.txt')
         # ids = get_ids_from_file(in_file, args.task, args.num_tasks)
         # simple_files, gibbs_files, reduced_files = get_files_matching_ids(ids, args.mcmc_output_dir)
-    jobs = get_jobs_from_file(args.mcmc_output_dir, args.task, args.num_tasks)
+    fname = os.path.join(args.mcmc_output_dir, 'sampled_block_ids.txt')
+    jobs = get_jobs_from_file(fname, args.task, args.num_tasks)
     # print(f'Found {len(simple_files)} simple files, {len(gibbs_files)} gibbs files, and {len(reduced_files)} reduced files')
     print('Jobs', jobs)
 
