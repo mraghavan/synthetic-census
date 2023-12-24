@@ -91,7 +91,7 @@ if __name__ == '__main__':
     samples = [
             {'min_hh': 5, 'max_hh': 20, 'num_samples': sample_size, 'type': 'gibbs'},
             {'min_hh': 5, 'max_hh': 20, 'num_samples': sample_size, 'type': 'reduced'},
-            {'min_hh': 14, 'max_hh': 30, 'num_samples': sample_size, 'type': 'reduced'},
+            {'min_hh': 14, 'max_hh': 35, 'num_samples': sample_size, 'type': 'reduced'},
             ]
 
     print('Total number of blocks', len(results_df))
