@@ -18,7 +18,10 @@ def ip_solve(counts: tuple, dist: dict, num_solutions=50):
     constraint_mat = np.array(ordering).T
     # print(constraint_mat)
 
-    m = gp.Model('IP solver')
+    env = gp.Env(empty=True)
+    env.setParam('OutputFlag', 0)
+    env.start()
+    m = gp.Model('IP solver', env=env)
     m.Params.LogToConsole = 0
     m.Params.PoolSearchMode = 2
     m.Params.PoolSolutions = num_solutions
@@ -55,6 +58,7 @@ def ip_solve(counts: tuple, dist: dict, num_solutions=50):
                 current_sol += [h] * round(v)
         current_sol = tuple(current_sol)
         sols.append(current_sol)
+    env.dispose()
     return sols
 
 if __name__ == '__main__':
