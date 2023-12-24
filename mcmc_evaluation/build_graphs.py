@@ -117,11 +117,19 @@ if __name__ == '__main__':
             }
     # failure_file = os.path.join(args.mcmc_output_dir, f'failures{args.task}.{args.num_tasks}.txt')
     failure_file = os.path.join(args.mcmc_output_dir, f'failures{args.task}.txt')
+    prev_failures = set()
+    with open(failure_file, 'r') as f:
+        prev_failures = set(f.read().splitlines())
     failures = []
+    print('failed', prev_failures)
 
     # TODO consider adding computation time to the outputs
     for job in jobs:
         identifier, job_type = job.split(',')
+        if identifier in prev_failures:
+            failures.append(identifier)
+            print('Skipping', identifier, job_type)
+            continue
         row = df[df['identifier'] == identifier].iloc[0]
         print('Processing', identifier, job_type)
         template = templates[job_type]
@@ -146,5 +154,6 @@ if __name__ == '__main__':
             print(job_type, 'graphs already exist for', row['identifier'])
 
     with open(failure_file, 'w') as f:
+        print('Writing failures to', failure_file)
         for failure in failures:
             f.write(failure + '\n')
