@@ -40,6 +40,7 @@ if __name__ == '__main__':
     known_failures = set()
     unknown_failed_jobs = set()
     known_failed_jobs = set()
+    unfinished_jobs = set()
 
     for i in all_jobs:
         # TODO this will have to be changed with new format to:
@@ -50,6 +51,9 @@ if __name__ == '__main__':
                 for line in f:
                     known_failures.add(line.strip())
                     print('Known failure', line.strip(), 'in job', i)
+        else:
+            unfinished_jobs.add(i)
+            print('Job', i, 'did not finish')
 
     for i, jobs in all_jobs.items():
         flag = False
@@ -58,12 +62,14 @@ if __name__ == '__main__':
             if not all_files_exist(args.mcmc_output_dir, results_templates[job_type], identifier, params[job_type]):
                 if identifier not in known_failures:
                     unknown_failures.add(identifier)
-                    flag = True
+                    if i not in unfinished_jobs:
+                        flag = True
                 print('Missing', identifier, job_type, i)
         if flag:
             unknown_failed_jobs.add(i)
 
     print('Jobs with unknown failures:', sorted(unknown_failed_jobs))
+    print('Unfinished jobs:', sorted(unfinished_jobs))
     print('Total', len(known_failures) + len(unknown_failures), 'failures')
     print('Known failures:', len(known_failures))
     all_failures = known_failures.union(unknown_failures)
