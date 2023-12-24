@@ -76,7 +76,7 @@ def save_graphs(graphs: dict, fname_template: str, identifier: str, file_dir: st
             print('Writing to', fname)
             pickle.dump(graph, f)
 
-gammas = [0.0, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 1.0]
+gammas = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]
 ks = [2, 3, 4]
 simple_fname_template = '{identifier}_{param}_simple_graph.xz'
 gibbs_fname_template = '{identifier}_{param}_gibbs_graph.xz'
