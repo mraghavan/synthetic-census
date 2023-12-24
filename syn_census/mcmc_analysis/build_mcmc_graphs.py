@@ -1,4 +1,5 @@
 import pandas as pd
+import time
 from itertools import combinations
 from collections import Counter, OrderedDict
 from scipy.special import comb
@@ -65,12 +66,18 @@ def get_neighbors_reduced(dist: dict, s: tuple, sol_map: dict, k: int):
     neighbors[sol_map[s]] = {'weight': 1 - total_weight}
     return neighbors
 
-def build_graph_reduced(dist: dict, sol, sol_map: dict, k: int):
+def build_graph_reduced(dist: dict, sol, sol_map: dict, k: int, fail_time=3*60*60):
     graph = {}
+    start_time = time.time()
     for s in sol:
         graph[sol_map[s]] = get_neighbors_reduced(dist, s, sol_map, k)
+        elapsed = time.time() - start_time
+        projected = int(len(sol)*elapsed/max(1, len(graph)))
         if sol_map[s] % 50 == 0:
-            print(sol_map[s])
+            print('Processed', len(graph), 'solutions.', f'Elapsed {elapsed:.2f} seconds.', f'Projected {projected} seconds.', f'fail_time {fail_time} seconds.')
+        if len(graph) > 200 and projected > fail_time:
+            print('Too much time. Aborting')
+            raise IncompleteError('Failed to find exact solutions')
     return graph, sol_map
 
 def get_d_maxes(dist: dict, counts: tuple):

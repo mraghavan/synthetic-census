@@ -50,7 +50,10 @@ def make_reduced_graphs(row: pd.Series, dist: dict, ks: list, **kwargs):
     reduced_graphs = {}
     for k in ks:
         print('Building reduced graph for k =', k, 'with', len(sol), 'solutions')
-        reduced_graphs[k] = build_graph_reduced(dist, sol, sol_map, k=k)
+        try:
+            reduced_graphs[k] = build_graph_reduced(dist, sol, sol_map, k=k)
+        except IncompleteError:
+            reduced_graphs[k] = None
     return reduced_graphs
 
 def all_files_exist(file_dir: str, template: str, identifier: str, params: list):
@@ -118,8 +121,9 @@ if __name__ == '__main__':
     # failure_file = os.path.join(args.mcmc_output_dir, f'failures{args.task}.{args.num_tasks}.txt')
     failure_file = os.path.join(args.mcmc_output_dir, f'failures{args.task}.txt')
     prev_failures = set()
-    with open(failure_file, 'r') as f:
-        prev_failures = set(f.read().splitlines())
+    if os.path.exists(failure_file):
+        with open(failure_file, 'r') as f:
+            prev_failures = set(f.read().splitlines())
     failures = []
     print('failed', prev_failures)
 
@@ -145,6 +149,10 @@ if __name__ == '__main__':
                         'max_sols': num_sols,
                         }
                 graphs = graph_funcs[job_type](row, dist, param, **kwargs)
+                if len(graphs) < len(param):
+                    print('IncompleteError: not all graphs were built')
+                    failures.append(row['identifier'])
+                    continue
             except IncompleteError as e:
                 print('IncompleteError:', e)
                 failures.append(row['identifier'])
