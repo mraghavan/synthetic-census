@@ -5,7 +5,7 @@
 #SBATCH --mem=10000           # Memory pool for all cores (see also --mem-per-cpu)
 #SBATCH -o out_files/build.%A_%a.out  # File to which STDOUT will be written, %j inserts jobid
 #SBATCH -e out_files/build.%A_%a.err  # File to which STDERR will be written, %j inserts jobid
-#SBATCH --array=1-150
+#SBATCH --array=1-300%100
 #SBATCH --mail-type=END
 #
 if [ "$#" -eq 1 ]; then
