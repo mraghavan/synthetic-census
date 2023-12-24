@@ -5,6 +5,12 @@
 #SBATCH -o out_files/ids.out  # File to which STDOUT will be written, %j inserts jobid
 #SBATCH -e out_files/ids.err  # File to which STDERR will be written, %j inserts jobid
 #SBATCH --mem=1000           # Memory pool for all cores (see also --mem-per-cpu)
-[ "$#" -eq 1 ] || { echo "No task name given" ; exit 1 ; }
+if [ "$#" -eq 2 ]; then
+    PARAM_FILE="$1"
+    TASK_NAME=$2
+else
+    echo Missing arguments PARAM_FILE or TASK_NAME
+    exit 1
+fi
 module load sloan/python/modules/python-3.6/gurobipy/9.0.1
-python3 sample_identifiers.py --from_params ../AL_params.json --task_name $1
+python3 sample_identifiers.py --from_params "$PARAM_FILE" --task_name $TASK_NAME
