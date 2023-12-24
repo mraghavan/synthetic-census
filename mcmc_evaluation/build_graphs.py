@@ -53,7 +53,7 @@ def make_reduced_graphs(row: pd.Series, dist: dict, ks: list, **kwargs):
         try:
             reduced_graphs[k] = build_graph_reduced(dist, sol, sol_map, k=k)
         except IncompleteError:
-            reduced_graphs[k] = None
+            pass
     return reduced_graphs
 
 def all_files_exist(file_dir: str, template: str, identifier: str, params: list):
