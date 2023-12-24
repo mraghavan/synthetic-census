@@ -3,8 +3,8 @@
 #SBATCH -t 0-12:00          # Runtime in D-HH:MM, minimum of 10 minutes
 #SBATCH -p sched_mit_sloan_batch   # Partition to submit to
 #SBATCH --mem=10000           # Memory pool for all cores (see also --mem-per-cpu)
-#SBATCH -o out_files/build.%A_%a.out  # File to which STDOUT will be written, %j inserts jobid
-#SBATCH -e out_files/build.%A_%a.err  # File to which STDERR will be written, %j inserts jobid
+#SBATCH -o out_files/build.%j.out  # File to which STDOUT will be written, %j inserts jobid
+#SBATCH -e out_files/build.%j.err  # File to which STDERR will be written, %j inserts jobid
 #SBATCH --mail-type=END
 
 if [ "$#" -eq 3 ]; then
