@@ -7,9 +7,17 @@
 #SBATCH -e out_files/build.%A_%a.err  # File to which STDERR will be written, %j inserts jobid
 #SBATCH --mail-type=END
 
-[ "$#" -eq 1 ] || { echo "No task num given" ; exit 1 ; }
+if [ "$#" -eq 3 ]; then
+    PARAM_FILE="$1"
+    TASK_NUM="$2"
+    TASKS="$3"
+else
+    echo Missing arguments PARAM_FILE TASK_NUM TASKS
+    exit 1
+fi
+
 module load sloan/python/modules/python-3.6/gurobipy/9.0.1
 python3 -m pip install gurobipy
 python3 -m pip install --user networkx
-python3 build_graphs.py --from_params ../AL_params.json --task $1 --num_tasks 150
-python3 analyze_graphs.py --from_params ../AL_params.json --task $1 --num_tasks 150
+python3 build_graphs.py --from_params "$PARAM_FILE" --task $TASK_NUM --num_tasks $TASKS
+python3 analyze_graphs.py --from_params "$PARAM_FILE" --task $TASK_NUM --num_tasks $TASKS
