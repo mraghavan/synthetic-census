@@ -21,13 +21,8 @@ parser_builder = ParserBuilder(
          })
 
 def get_relevant_blocks(results_dir: str, task_name: str, max_num_sols: int):
-    """
-    Returns a list of block ids that have between min_sols and max_sols solutions
-    and their corresponding solution counts.
-    """
     pattern = re.compile(rf'{task_name}_\d+_\d+.pkl')
     results_list = []
-    sol_lens = OrderedDict()
     for fname in os.listdir(results_dir):
         if pattern.match(fname):
             with open(results_dir + fname, 'rb') as f:
@@ -39,8 +34,6 @@ def get_relevant_blocks(results_dir: str, task_name: str, max_num_sols: int):
                         'num_elements': len(sol['sol']),
                         'level': sol['level']
                         })
-                    if sol['level'] == 1 and len(sol['prob_list']) < max_num_sols:
-                        sol_lens[sol['id']] = len(sol['sol'])
     results_df = pd.DataFrame(results_list)
     return results_df
 
@@ -80,10 +73,6 @@ if __name__ == '__main__':
     parser_builder.parse_args()
     print(parser_builder.args)
     args = parser_builder.args
-    min_hh = 5
-    max_hh = 20
-    reduced_min_hh = 14
-    reduced_max_hh = 30
 
     sample_size = args.num_samples
     results_df = get_relevant_blocks(args.synthetic_output_dir, args.task_name, args.num_sols)
@@ -103,6 +92,9 @@ if __name__ == '__main__':
         full_sample += generate_sample(filtered_df, **sample)
 
     out_file = os.path.join(args.mcmc_output_dir, 'sampled_block_ids.txt')
+    df_out_file = os.path.join(args.mcmc_output_dir, 'all_blocks.csv')
+    print('Writing df to', df_out_file)
+    filtered_df.to_csv(df_out_file, index=False)
     with open(out_file, 'w') as f:
         print('Writing %d jobs to' % len(full_sample), out_file)
         for identifier, sample_type in full_sample:
