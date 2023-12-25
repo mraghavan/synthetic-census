@@ -1,4 +1,5 @@
 import pandas as pd
+import os
 import pickle as pkl
 import sys
 import numpy as np
@@ -26,7 +27,6 @@ def generate_data(
         num_tasks: int,
         include_probs: bool = False,
         tmp_file: str= '',
-        tmp_file_template: str = '',
         ):
     SOLVER_PARAMS.num_sols = num_sols
 
@@ -43,10 +43,13 @@ def generate_data(
     hh_dist = encode_hh_dist(read_microdata(micro_file))
     errors = []
     output = []
-    if tmp_file:
+    if tmp_file and os.path.exists(tmp_file):
         print('Loading tmp file', tmp_file)
-        with open(tmp_file, 'rb') as f:
-            output, errors = pkl.load(f)
+        try:
+            with open(tmp_file, 'rb') as f:
+                output, errors = pkl.load(f)
+        except:
+            print('Error loading tmp file', tmp_file)
     already_finished = set([o['id'] for o in output])
 
     for i, (ind, row) in enumerate(df.iterrows()):
@@ -81,8 +84,8 @@ def generate_data(
             if include_probs:
                 d['prob_list'] = list(sol.values())
             output.append(d)
-            if i > 0 and i % 30 == 0 and tmp_file_template:
-                print('Saving tmp file', tmp_file_template.format(i))
-                with open(tmp_file_template.format(i), 'wb') as f:
+            if i > 0 and i % 30 == 0 and tmp_file:
+                print('Saving tmp file', tmp_file)
+                with open(tmp_file, 'wb') as f:
                     pkl.dump((output, errors), f)
     return (output, errors)
