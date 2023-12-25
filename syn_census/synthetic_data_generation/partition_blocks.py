@@ -1,4 +1,5 @@
 import pandas as pd
+import pickle as pkl
 import sys
 import numpy as np
 from .guided_solver import SOLVER_PARAMS, SOLVER_RESULTS, SolverResults, solve
@@ -18,13 +19,14 @@ def sample_from_sol(sol):
         return keys[0]
 
 def generate_data(
-        out_file: str, #TODO remove
         micro_file: str,
         block_clean_file: str,
         num_sols: int,
         task: int,
         num_tasks: int,
         include_probs: bool = False,
+        tmp_file: str= '',
+        tmp_file_template: str = '',
         ):
     SOLVER_PARAMS.num_sols = num_sols
 
@@ -41,9 +43,18 @@ def generate_data(
     hh_dist = encode_hh_dist(read_microdata(micro_file))
     errors = []
     output = []
-    for ind, row in df.iterrows():
+    if tmp_file:
+        print('Loading tmp file', tmp_file)
+        with open(tmp_file, 'rb') as f:
+            output, errors = pkl.load(f)
+    already_finished = set([o['id'] for o in output])
+
+    for i, (ind, row) in enumerate(df.iterrows()):
         print()
         print('index', ind, 'id', row['identifier'])
+        if row['identifier'] in already_finished:
+            print(row['identifier'], 'already finished')
+            continue
         identifier = str(row['identifier'])
         sol = solve(row, hh_dist)
         print(len(sol), 'unique solutions')
@@ -70,4 +81,8 @@ def generate_data(
             if include_probs:
                 d['prob_list'] = list(sol.values())
             output.append(d)
-    return(output, errors)
+            if i > 0 and i % 10 == 0 and tmp_file_template:
+                print('Saving tmp file', tmp_file_template.format(i))
+                with open(tmp_file_template.format(i), 'wb') as f:
+                    pkl.dump((output, errors), f)
+    return (output, errors)
