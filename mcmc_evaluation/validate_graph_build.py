@@ -34,43 +34,62 @@ if __name__ == '__main__':
     in_file = os.path.join(args.mcmc_output_dir, 'sampled_block_ids.txt')
     all_jobs = {}
     for i in range(1, args.num_tasks + 1):
-        all_jobs[i] = get_jobs_from_file(in_file, i, args.num_tasks)
+        jobs = get_jobs_from_file(in_file, i, args.num_tasks)
+        l = {}
+        for job in jobs:
+            identifier, job_type = job.split(',')
+            l[identifier] = job_type
+        all_jobs[i] = l
 
     unknown_failures = set()
     known_failures = set()
+    known_failures_with_type = {}
     unknown_failed_jobs = set()
     known_failed_jobs = set()
     unfinished_jobs = set()
+    all_failures_with_type = set()
 
-    for i in all_jobs:
+    for i, jobs in all_jobs.items():
         # TODO this will have to be changed with new format to:
         # fail_file = os.path.join(args.mcmc_output_dir, f'failures{i}.{args.num_tasks}.txt')
         fail_file = os.path.join(args.mcmc_output_dir, f'failures{i}.txt')
         if os.path.exists(fail_file):
             with open(fail_file) as f:
                 for line in f:
-                    known_failures.add(line.strip())
-                    print('Known failure', line.strip(), 'in job', i)
+                    identifier = line.strip()
+                    known_failures.add((identifier, jobs[identifier]))
+                    known_failures_with_type[identifier] = jobs[identifier]
+                    print('Known failure', identifier, 'in job', i, jobs[identifier])
         else:
             unfinished_jobs.add(i)
-            print('Job', i, 'did not finish')
-
-    for i, jobs in all_jobs.items():
         flag = False
-        for jobs in jobs:
-            identifier, job_type = jobs.split(',')
+        for identifier, job_type in jobs.items():
             if not all_files_exist(args.mcmc_output_dir, results_templates[job_type], identifier, params[job_type]):
-                if identifier not in known_failures:
-                    unknown_failures.add(identifier)
+                if (identifier, job_type) not in known_failures:
+                    unknown_failures.add((identifier, job_type))
                     if i not in unfinished_jobs:
                         flag = True
                 print('Missing', identifier, job_type, i)
+                all_failures_with_type.add((identifier, job_type))
         if flag:
             unknown_failed_jobs.add(i)
 
+    # for i, jobs in all_jobs.items():
+        # flag = False
+        # for identifier, job_type in jobs.items():
+            # if not all_files_exist(args.mcmc_output_dir, results_templates[job_type], identifier, params[job_type]):
+                # if identifier not in known_failures:
+                    # unknown_failures.add(identifier)
+                    # if i not in unfinished_jobs:
+                        # flag = True
+                # print('Missing', identifier, job_type, i)
+                # all_failures_with_type.add((identifier, job_type))
+        # if flag:
+            # unknown_failed_jobs.add(i)
+
     print('Jobs with unknown failures:', sorted(unknown_failed_jobs))
-    print('Unfinished jobs:', sorted(unfinished_jobs))
-    print('Total', len(known_failures) + len(unknown_failures), 'failures')
+    print('Unfinished jobs:', sorted(unfinished_jobs), f'({len(unfinished_jobs)} total)')
+    print('Total', len(all_failures_with_type), 'failures')
     print('Known failures:', len(known_failures))
     all_failures = known_failures.union(unknown_failures)
 
@@ -78,10 +97,14 @@ if __name__ == '__main__':
     # non-empty rows
     df = df[df['H7X001'] > 0]
     print(df.head())
-    matching_df = df[df['identifier'].isin(all_failures)]
-    print('Number of matching rows:', len(matching_df))
+    # matching_df = df[df['identifier'].isin(all_failures)]
+    # print('Number of matching rows:', len(matching_df))
     dist = encode_hh_dist(read_microdata(args.micro_file))
-    print('%10s\tnum_hhs\tnum_sols' % 'identifier')
-    for _, row in matching_df.iterrows():
-        num_hhs, num_sols = get_stats_on_row(row, dist, args.num_sols)
-        print('%s\t%d\t%d' % (row['identifier'], num_hhs, num_sols))
+    print('identifier\tjob_type\tnum_hhs\tnum_sols')
+    for identifier, job_type in all_failures_with_type:
+        matching_row = df[df['identifier'] == identifier]
+        num_hhs, num_sols = get_stats_on_row(matching_row.iloc[0], dist, args.num_sols)
+        print('%s\t%10s\t%d\t%d' % (identifier, job_type, num_hhs, num_sols))
+    # for _, row in matching_df.iterrows():
+        # num_hhs, num_sols = get_stats_on_row(row, dist, args.num_sols)
+        # print('%s\t%d\t%d' % (row['identifier'], num_hhs, num_sols))
