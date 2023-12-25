@@ -61,10 +61,19 @@ if __name__ == '__main__':
     parser_builder.parse_args()
     print(parser_builder.args)
     args = parser_builder.args
+    identifiers = []
+    ks = []
+    with open(os.path.join(args.mcmc_output_dir, 'disconnected_graphs.txt'), 'r') as f:
+        for line in f:
+            identifier, k = line.split(',')
+            identifiers.append(identifier)
+            ks.append(int(k))
     # AL
     # identifiers = ['089-002501-2053', '015-000400-1011']
+    #AL 2
+    # identifiers = ['117-030211-1047']
     # NV
-    identifiers = ['007-950702-2098', '031-003110-4013', '003-001611-1018']
-    k = 2
-    for identifier in identifiers:
+    # identifiers = ['007-950702-2098', '031-003110-4013', '003-001611-1018']
+    # k = 2
+    for identifier, k in zip(identifiers, ks):
         plot_disconnected(identifier, k)
