@@ -1,15 +1,15 @@
 import sys
+from collections import Counter
 import os
 import numpy as np
 import pandas as pd
 import pickle
 import re
 import matplotlib.pyplot as plt
-from matplotlib.axes import Axes
 sys.path.append('../')
 from syn_census.utils.config2 import ParserBuilder
 
-simple_re = re.compile(r'(\d+-\d+-\d+)_(\d+(.\d+)?)_simple_results.pkl')
+simple_re = re.compile(r'(\d+-\d+-\d+)_(\d+(.\d+)?)_gibbs_results.pkl')
 reduced_re = re.compile(r'(\d+-\d+-\d+)_(\d+(.\d+)?)_reduced_results.pkl')
 
 parser_builder = ParserBuilder(
@@ -23,11 +23,12 @@ parser_builder = ParserBuilder(
 AXIS_LABELS = {
         'solution_density': r'Solution density ($p_{\gamma}$)',
         'mixing_time': 'Mixing time',
-        'num_sols': 'Number of solutions',
+        'num_solutions': r'$|\mathcal{X}|$',
         'mixing_time_lb': 'Lower bound on mixing time',
         'exp_mixing_time_lb': r'Lower bound on expected number of iterations ($N_{\gamma}$)',
         'mixing_time_ub': 'Upper bound on mixing time',
-        'num_elements': 'Number of items in each solution',
+        'num_elements': '$m$',
+        'gamma': r'$\gamma$',
         }
 
 def extract_params(all_results, pattern, t=float):
@@ -98,17 +99,23 @@ def scatter_mixing_times(simple_df: pd.DataFrame, reduced_df: pd.DataFrame, x_ax
     plt.yscale('log')
     plt.legend()
     if save_file:
+        print(f'Saving to {save_file}')
         plt.savefig(save_file, dpi=300)
     plt.show()
 
-def scatter_only_reduced(reduced_df: pd.DataFrame, x_axis:str, column: str):
+def scatter_only_reduced(reduced_df: pd.DataFrame, x_axis:str, column: str, save_file=''):
     plt.scatter(reduced_df[x_axis], reduced_df[column])
     # only show integer x ticks
     # plt.xticks(np.arange(min(reduced_df[x_axis]), max(reduced_df[x_axis])+1, 1.0))
     plt.xlabel(AXIS_LABELS[x_axis] if x_axis in AXIS_LABELS else x_axis)
     plt.ylabel(AXIS_LABELS[column] if column in AXIS_LABELS else column)
     plt.yscale('log')
-    plt.savefig('img/reduced_{}_{}.png'.format(x_axis, column), dpi=300)
+    # fname = f'img/{args.state}_reduced_{x_axis}_{column}.png'
+    # print('Saving to', fname)
+    # plt.savefig(fname, dpi=300)
+    if save_file:
+        print(f'Saving to {save_file}')
+        plt.savefig(save_file, dpi=300)
     plt.show()
 
 def scatter_mixing_time_ratios(simple_df: pd.DataFrame, reduced_df: pd.DataFrame, bound='lower'):
@@ -139,7 +146,8 @@ def scatter_solutions_vs_states(simple_df: pd.DataFrame):
 
 def connectivity_analysis(reduced_df: pd.DataFrame):
     for k in sorted(reduced_df['k'].unique()):
-        print(f'Fraction connected for k={k}', reduced_df.loc[reduced_df['k'] == k]['is_connected'].value_counts()[True] / len(reduced_df.loc[reduced_df['k'] == k]))
+        k_df = reduced_df.loc[reduced_df['k'] == k]
+        print(f'Fraction connected for k={k}', k_df['is_connected'].value_counts()[True] / len(k_df))
     # Find the identifier whre is_connected is False
     print('Disconnected ids', reduced_df.loc[reduced_df['is_connected'] == False]['identifier'].unique())
 
@@ -152,27 +160,53 @@ def max_mixing_time(reduced_df: pd.DataFrame):
     max_time = max(reduced_df['mixing_time_lb'])
     print('Max mixing time', max_lb, max_time, max_tol)
 
-def plot_column(df: pd.DataFrame, column: str, x_axis: str):
+def plot_column(df: pd.DataFrame, column: str, x_axis: str, save_file='', title=''):
+    df = df.copy()
+    # df.loc[df['spectral_gap_tolerance'] > 0, column] = np.NaN
     if 'is_connected' in df.columns:
         full_df = df[df['is_connected']]
     else:
         full_df = df
     unique_ids = full_df['identifier'].unique()
+    unique_params = full_df[x_axis].unique()
+    flag_1 = False
+    flag_2 = False
     for ide in unique_ids:
         df = full_df.loc[full_df['identifier'] == ide].copy()
         df.sort_values(by=[x_axis], inplace=True)
-        if df['spectral_gap_tolerance'].unique().size > 1:
-            plt.plot(df[x_axis], df[column], color='r', marker='o')
+        # if df['spectral_gap_tolerance'].unique().size > 1:
+            # plt.plot(df[x_axis], df[column], color='r', marker='o')
+        # else:
+        if len(df) != len(unique_params):
+            if flag_2:
+                plt.plot(df[x_axis], df[column], color='y', marker='o', zorder=2)
+            else:
+                flag_2 = True
+                plt.plot(df[x_axis], df[column], color='y', marker='o', zorder=2, label='incomplete')
         else:
-            plt.plot(df[x_axis], df[column], color='b', marker='o')
+            if flag_1:
+                plt.plot(df[x_axis], df[column], color='b', marker='o', zorder=1)
+            else:
+                flag_1 = True
+                plt.plot(df[x_axis], df[column], color='b', marker='o', zorder=1, label='complete')
+    tol_df = full_df[full_df['spectral_gap_tolerance'] > 0]
+    if len(tol_df) > 0:
+        plt.scatter(tol_df[x_axis], tol_df[column], color='r', marker='o', zorder=3, label='low precision')
     if x_axis == 'gamma':
         plt.xlabel(r'$\gamma$')
     else:
         # only show integer x ticks
-        # plt.xticks(np.arange(min(df[x_axis]), max(df[x_axis])+1, 1.0))
+        plt.xticks(np.arange(min(df[x_axis]), max(df[x_axis])+1, 1.0))
         plt.xlabel('$k$')
     plt.ylabel(AXIS_LABELS[column] if column in AXIS_LABELS else column)
     plt.yscale('log')
+    handles, _ = plt.gca().get_legend_handles_labels()
+    if len(handles) > 1:
+        plt.legend()
+    plt.title(title)
+    if save_file:
+        print(f'Saving to {save_file}')
+        plt.savefig(save_file, dpi=300)
     plt.show()
 
 def hist_column(opt_simple_df: pd.DataFrame, column: str, log=False):
@@ -183,6 +217,15 @@ def hist_column(opt_simple_df: pd.DataFrame, column: str, log=False):
         plt.hist(opt_simple_df[column], bins=20)
         plt.xlabel(column)
     plt.ylabel('count')
+    plt.show()
+
+def opt_param(opt_df: pd.DataFrame, param_col: str):
+    xy = [(x, y) for x, y in zip(opt_df['num_elements'], opt_df[param_col])]
+    c = Counter(xy)
+    xs, ys, ss = zip(*[(x, y, 10*c[(x, y)]) for x, y in c])
+    plt.scatter(xs, ys, s=ss)
+    plt.xlabel('$m$')
+    plt.ylabel(AXIS_LABELS[param_col] if param_col in AXIS_LABELS else param_col)
     plt.show()
 
 if __name__ == '__main__':
@@ -208,20 +251,38 @@ if __name__ == '__main__':
     opt_full_reduced_df_lb = get_min_mixing_time_df(full_reduced_df, 'mixing_time_lb')
     opt_full_reduced_df_ub = get_min_mixing_time_df(full_reduced_df, 'mixing_time_ub')
 
+    opt_param(opt_simple_df, 'gamma')
+    opt_param(opt_reduced_df, 'k')
+    # sys.exit(0)
+
     # scatter_solutions_vs_states(opt_simple_df)
     # scatter_mixing_times(opt_simple_df, opt_reduced_df, 'num_solutions')
-    scatter_mixing_times(opt_simple_df, opt_reduced_df, 'num_elements', save_file='./img/all_num_elements_mixing_time.png')
+    scatter_mixing_times(opt_simple_df, opt_reduced_df, 'num_elements', save_file=f'./img/{args.state}_all_num_elements_mixing_time.png')
     # scatter_mixing_time_ratios(opt_simple_df, opt_reduced_df, bound='upper')
     # scatter_only_reduced(opt_full_reduced_df_ub, 'num_solutions', 'mixing_time_ub')
-    scatter_only_reduced(opt_full_reduced_df_ub, 'num_elements', 'mixing_time_ub')
+    # scatter_only_reduced(opt_full_reduced_df_lb, 'num_elements', 'mixing_time_lb')
+    scatter_only_reduced(opt_full_reduced_df_lb, 'num_solutions', 'mixing_time_lb', save_file=f'./img/{args.state}_num_solutions_mtlb.png')
     connectivity_analysis(full_reduced_df)
+
     # max_mixing_time(full_reduced_df)
-    plot_column(simple_df, 'solution_density', 'gamma')
-    plot_column(simple_df, 'exp_mixing_time_lb', 'gamma')
+    # plot_column(simple_df, 'solution_density', 'gamma')
+
+    plot_column(
+            simple_df,
+            'exp_mixing_time_lb',
+            'gamma',
+            save_file=f'./img/{args.state}_gamma_exp_mixing_time_lb.png',
+            title=r'Lower bound on $N_{\gamma}$ for $M_{\gamma}$',
+            )
     # plot_column(simple_df, 'exp_mixing_time_ub', 'gamma')
-    plot_column(full_reduced_df, 'mixing_time_lb', 'k')
-    hist_column(opt_simple_df, 'exp_mixing_time_lb', log=True)
-    hist_column(opt_reduced_df, 'mixing_time_ub')
+    plot_column(
+            full_reduced_df,
+            'mixing_time_lb',
+            'k',
+            save_file=f'./img/{args.state}_k_mixing_time_lb.png',
+            )
+    # hist_column(opt_simple_df, 'exp_mixing_time_lb', log=True)
+    # hist_column(opt_reduced_df, 'mixing_time_ub')
 
     # TODO verify that gamma = 1 is sufficient
     # looks like there's at least one block where we need larger gamma
