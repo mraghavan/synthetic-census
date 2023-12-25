@@ -111,17 +111,17 @@ def build_graph_gibbs(dist: OrderedDict, counts: tuple, gammas: list, total_solu
         # if sol_map[node] > fail_time:
             # print('Too many states. Aborting')
             # raise IncompleteError('Failed to find exact solutions')
+        elapsed = time.time() - start_time
+        projected = int(elapsed*(total_solutions+1)/max(1, get_neighbors_gibbs.num_exact))
         if len(first_graph) % 1000 == 0:
-            elapsed = time.time() - start_time
-            projected = int(elapsed*(total_solutions+1)/max(1, get_neighbors_gibbs.num_exact))
             print('Processed', len(first_graph), 'states.',
                   'Found {}/{} exact solutions.'.format(get_neighbors_gibbs.num_exact, total_solutions) if total_solutions > 0 else '',
                   f'Elapsed {elapsed:.2f} seconds.',
                   f'Projected {projected} seconds.',
                   f'fail_time {fail_time} seconds.')
-            if elapsed > fail_time/10 and projected > fail_time:
-                print('Too much time. Aborting')
-                raise IncompleteError('Failed to find exact solutions')
+        if elapsed > fail_time/10 and projected > fail_time:
+            print('Too much time. Aborting')
+            raise IncompleteError('Failed to find exact solutions')
             # print('Processed', len(first_graph), 'exact solutions', get_neighbors_gibbs.num_exact, '/', total_solutions, ('projected {}'.format(projected) if total_solutions > 0 else ''))
         all_neighbors = get_neighbors_gibbs(dist, node, counts, sol_map, reverse_sol_map, gammas)
         for gamma in gammas:

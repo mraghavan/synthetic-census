@@ -4,7 +4,7 @@ import pickle
 import lzma
 import pandas as pd
 from collections import OrderedDict
-from math import ceil, floor
+from math import ceil
 # import numpy as np
 # import re
 sys.path.append('../')
