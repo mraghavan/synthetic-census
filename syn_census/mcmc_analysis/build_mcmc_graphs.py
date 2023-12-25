@@ -75,7 +75,7 @@ def build_graph_reduced(dist: dict, sol, sol_map: dict, k: int, fail_time=3*60*6
         projected = int(len(sol)*elapsed/max(1, len(graph)))
         if sol_map[s] % 50 == 0:
             print('Processed', len(graph), 'solutions.', f'Elapsed {elapsed:.2f} seconds.', f'Projected {projected} seconds.', f'fail_time {fail_time} seconds.')
-        if elapsed > 20*60 and projected > fail_time:
+        if elapsed > fail_time/10 and projected > fail_time:
             print('Too much time. Aborting')
             raise IncompleteError('Failed to find exact solutions')
     return graph, sol_map
@@ -119,7 +119,7 @@ def build_graph_gibbs(dist: OrderedDict, counts: tuple, gammas: list, total_solu
                   f'Elapsed {elapsed:.2f} seconds.',
                   f'Projected {projected} seconds.',
                   f'fail_time {fail_time} seconds.')
-            if elapsed > 60*60 and projected > fail_time:
+            if elapsed > fail_time/10 and projected > fail_time:
                 print('Too much time. Aborting')
                 raise IncompleteError('Failed to find exact solutions')
             # print('Processed', len(first_graph), 'exact solutions', get_neighbors_gibbs.num_exact, '/', total_solutions, ('projected {}'.format(projected) if total_solutions > 0 else ''))
@@ -135,7 +135,6 @@ def get_neighbors_gibbs(dist: dict, s: tuple, counts: tuple, sol_map: dict, reve
             get_neighbors_gibbs.num_exact += 1
             # print('Exact solution found', get_neighbors_simple.num_exact)
     all_neighbors_by_gamma = {g: {} for g in gammas}
-    first_gamma = gammas[0]
     for item in dist:
         neighbors_by_gamma = {g: {} for g in gammas}
         if len(s) > 0:
