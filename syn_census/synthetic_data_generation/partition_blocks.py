@@ -81,7 +81,7 @@ def generate_data(
             if include_probs:
                 d['prob_list'] = list(sol.values())
             output.append(d)
-            if i > 0 and i % 10 == 0 and tmp_file_template:
+            if i > 0 and i % 30 == 0 and tmp_file_template:
                 print('Saving tmp file', tmp_file_template.format(i))
                 with open(tmp_file_template.format(i), 'wb') as f:
                     pkl.dump((output, errors), f)
