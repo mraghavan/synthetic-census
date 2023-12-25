@@ -96,6 +96,8 @@ def fit_truncated_pl(xs, ys):
     plt.scatter(xs, ys, label='Original Data')
     # plt.step(xs, ys, label='Original Cumulative Data', where='post')
     plt.plot(smooth_xs, fit_ccdf, label=f'Power Law Fit: a={a:.2f}, b={b:.2f}', color='red')
+    # dashed vertical line at x = max(xs)
+    plt.axvline(x=max(xs), color='black', linestyle='--')
     # plt.plot(smooth_xs, fit_ys, label=f'Power Law Fit: a={a:.2f}, b={b:.2f}', color='red')
     plt.xscale('log')
     plt.yscale('log')
