@@ -152,12 +152,11 @@ if __name__ == '__main__':
                 if len(graphs) < len(param):
                     print('IncompleteError: not all graphs were built')
                     failures.append(row['identifier'])
-                    continue
+                save_graphs(graphs, template, identifier, args.mcmc_output_dir)
             except IncompleteError as e:
                 print('IncompleteError:', e)
                 failures.append(row['identifier'])
                 continue
-            save_graphs(graphs, template, identifier, args.mcmc_output_dir)
         else:
             print(job_type, 'graphs already exist for', row['identifier'])
 
