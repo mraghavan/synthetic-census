@@ -6,6 +6,8 @@ import pandas as pd
 import pickle
 import re
 import matplotlib.pyplot as plt
+from matplotlib import rc
+rc('text', usetex=True)
 from matplotlib.legend_handler import HandlerTuple
 sys.path.append('../')
 from syn_census.utils.config2 import ParserBuilder
@@ -25,12 +27,18 @@ AXIS_LABELS = {
         'solution_density': r'Solution density ($p_{\gamma}$)',
         'mixing_time': 'Mixing time',
         'num_solutions': r'$|\mathcal{X}|$',
-        'mixing_time_lb': 'Lower bound on mixing time',
-        'exp_mixing_time_lb': r'Lower bound on expected number of iterations ($N_{\gamma}$)',
+        'mixing_time_lb': r'$\underline{N}_{k}$',
+        'exp_mixing_time_lb': r'$\underline{N}_{\gamma}$',
         'mixing_time_ub': 'Upper bound on mixing time',
         'num_elements': '$m$',
         'gamma': r'$\gamma$',
+        'k': '$k$',
         }
+
+def save_if_file(save_file: str):
+    if save_file:
+        print(f'Saving to {save_file}')
+        plt.savefig(save_file, dpi=300)
 
 def extract_params(all_results, pattern, t=float):
     # returns a dictionary mapping parameter values to filenames
@@ -75,48 +83,81 @@ def load_results(results_dir: str):
     # reduced_df = reduced_df.loc[reduced_df['num_solutions'] <= max_num_solutions]
     return simple_df, reduced_df
 
-def add_mixing_time(df: pd.DataFrame, eps=1/(2*np.exp(1))):
+def add_mixing_time_reduced(df: pd.DataFrame, eps=1/(2*np.exp(1))):
     df['spectral_gap_lb'] = df['spectral_gap'] - df['spectral_gap_tolerance']
     df['spectral_gap_ub'] = df['spectral_gap'] + df['spectral_gap_tolerance']
     df['mixing_time_lb'] = np.floor((1/df['spectral_gap_ub'] - 1) * np.log(1/(2*eps)))
+    df.loc[df['num_solutions'] == 1, 'mixing_time_lb'] = 1
     df['mixing_time_ub'] = np.ceil(1/df['spectral_gap_lb'] * np.log(df['num_solutions']/eps))
+    df.loc[df['is_connected'] == False, 'mixing_time_ub'] = np.inf
+    df.loc[df['is_connected'] == False, 'mixing_time_lb'] = np.inf
+    assert all(df['mixing_time_ub'] >= df['mixing_time_lb'])
+
+def add_mixing_time_simple(df: pd.DataFrame, eps=1/(2*np.exp(1))):
+    eps_times_sol_density = df['solution_density'] * eps
+    df['spectral_gap_lb'] = df['spectral_gap'] - df['spectral_gap_tolerance']
+    df['spectral_gap_ub'] = df['spectral_gap'] + df['spectral_gap_tolerance']
+    df['mixing_time_lb'] = np.floor((1/df['spectral_gap_ub'] - 1) * np.log(3/(4*eps_times_sol_density)))
+    df['mixing_time_ub'] = np.ceil(1/df['spectral_gap_lb'] * np.log(3*df['num_solutions']/(2*eps_times_sol_density)))
     df.loc[df['spectral_gap_lb'] <= 0, 'mixing_time_ub'] = np.inf
 
-def add_exp_mixing_time(df: pd.DataFrame):
-    df['exp_mixing_time_lb'] = df['mixing_time_lb'] / df['solution_density']
-    df['exp_mixing_time_ub'] = df['mixing_time_ub'] / df['solution_density']
+def add_exp_mixing_time(df: pd.DataFrame, eps=1/(2*np.exp(1))):
+    df['exp_mixing_time_lb'] = df['mixing_time_lb'] / (df['solution_density'] * (1 + 2*eps/3))
+    df['exp_mixing_time_ub'] = df['mixing_time_ub'] / (df['solution_density'] * (1 - 2*eps/3))
 
 def get_min_mixing_time_df(df: pd.DataFrame, lb_type: str):
     return df.loc[df.groupby(['identifier'])[lb_type].idxmin()]
 
-def scatter_mixing_times(simple_df: pd.DataFrame, reduced_df: pd.DataFrame, x_axis:str, save_file=''):
-    plt.scatter(simple_df[x_axis], simple_df['exp_mixing_time_lb'], label='simple LB')
-    plt.scatter(reduced_df[x_axis], reduced_df['mixing_time_lb'], label='reduced LB')
+def scatter_mixing_times(simple_df: pd.DataFrame,
+                         reduced_df: pd.DataFrame,
+                         x_axis:str,
+                         simple_fail_df: pd.DataFrame = None,
+                         reduced_fail_df: pd.DataFrame = None,
+                         save_file=''):
+    plt.scatter(simple_df[x_axis], simple_df['exp_mixing_time_lb'], label=r'$\underline{N}_{\gamma^*}$ (simple)')
+    plt.scatter(reduced_df[x_axis], reduced_df['mixing_time_ub'], marker='^', label=r'$\overline{N}_{k^*}$ (reduced)')
+    if simple_fail_df is not None or reduced_fail_df is not None:
+        plt.gca().set_prop_cycle(None)
+        vals = [df[x_axis] for df in [simple_fail_df, reduced_fail_df] if df is not None]
+        labels = [label for label, df in zip(['simple failures', 'reduced failures'],
+                                              [simple_fail_df, reduced_fail_df])
+                  if df is not None]
+        plt.hist(vals,
+                 label=labels,
+                 bins=reduced_df['num_elements'].max(),
+                 color='red',
+                 hatch='//')
     if x_axis in AXIS_LABELS:
         plt.xlabel(AXIS_LABELS[x_axis])
     else:
         plt.xlabel(x_axis)
-    plt.ylabel('Lower bound on expected number of iterations')
     plt.yscale('log')
     plt.legend()
-    if save_file:
-        print(f'Saving to {save_file}')
-        plt.savefig(save_file, dpi=300)
+    save_if_file(save_file)
     plt.show()
 
-def scatter_only_reduced(reduced_df: pd.DataFrame, x_axis:str, column: str, save_file=''):
-    plt.scatter(reduced_df[x_axis], reduced_df[column])
+def scatter_only_reduced(reduced_df: pd.DataFrame,
+                         x_axis:str,
+                         column: str,
+                         reduced_fail_df: pd.DataFrame = None,
+                         save_file=''):
+    plt.scatter(reduced_df[x_axis], reduced_df[column], label='reduced')
+    if reduced_fail_df is not None:
+        plt.gca().set_prop_cycle(None)
+        plt.hist(reduced_fail_df[x_axis],
+                 label='failures',
+                 bins=reduced_df['num_elements'].max())
     # only show integer x ticks
     # plt.xticks(np.arange(min(reduced_df[x_axis]), max(reduced_df[x_axis])+1, 1.0))
     plt.xlabel(AXIS_LABELS[x_axis] if x_axis in AXIS_LABELS else x_axis)
     plt.ylabel(AXIS_LABELS[column] if column in AXIS_LABELS else column)
     plt.yscale('log')
+    if reduced_fail_df is not None:
+        plt.legend()
     # fname = f'img/{args.state}_reduced_{x_axis}_{column}.png'
     # print('Saving to', fname)
     # plt.savefig(fname, dpi=300)
-    if save_file:
-        print(f'Saving to {save_file}')
-        plt.savefig(save_file, dpi=300)
+    save_if_file(save_file)
     plt.show()
 
 def scatter_mixing_time_ratios(simple_df: pd.DataFrame, reduced_df: pd.DataFrame, bound='lower'):
@@ -152,7 +193,7 @@ def connectivity_analysis(reduced_df: pd.DataFrame, output_file: str):
     # Find the identifier whre is_connected is False
     ids = reduced_df.loc[reduced_df['is_connected'] == False]['identifier']
     ks = reduced_df.loc[reduced_df['is_connected'] == False]['k']
-    print('Disconnected ids', ids, ks)
+    print('Disconnected ids', ids.values, ks.values)
     with open(output_file, 'w') as f:
         print('Writing disconnected ids to', output_file)
         for ide, k in zip(ids, ks):
@@ -206,9 +247,7 @@ def plot_column(df: pd.DataFrame, column: str, x_axis: str, save_file='', title=
     # if len(handles) > 1:
         # plt.legend()
     plt.title(title)
-    if save_file:
-        print(f'Saving to {save_file}')
-        plt.savefig(save_file, dpi=300)
+    save_if_file(save_file)
     plt.show()
 
 def hist_column(opt_simple_df: pd.DataFrame, column: str, log=False):
@@ -221,28 +260,81 @@ def hist_column(opt_simple_df: pd.DataFrame, column: str, log=False):
     plt.ylabel('count')
     plt.show()
 
-def opt_param(opt_df: pd.DataFrame, param_col: str):
+def opt_param(opt_df: pd.DataFrame, param_col: str, save_file=''):
     xy = [(x, y) for x, y in zip(opt_df['num_elements'], opt_df[param_col])]
     c = Counter(xy)
     xs, ys, ss = zip(*[(x, y, 10*c[(x, y)]) for x, y in c])
     plt.scatter(xs, ys, s=ss)
     plt.xlabel('$m$')
-    plt.ylabel(AXIS_LABELS[param_col] if param_col in AXIS_LABELS else param_col)
+    plt.ylabel('Optimal ' + AXIS_LABELS[param_col] if param_col in AXIS_LABELS else param_col)
     if opt_df[param_col].dtype == 'int':
         # only show integer y ticks
         plt.yticks(np.arange(min(opt_df[param_col]), max(opt_df[param_col])+1, 1.0))
+    save_if_file(save_file)
     plt.show()
+
+def get_opt_global_param(df: pd.DataFrame, param_col: str, bound_col: str):
+    df = df.copy()
+    df[param_col] = df[param_col].astype('category')
+    # df.loc[df['spectral_gap_tolerance'] > 0, bound_col] = np.inf
+
+    # Find the value of k that minimizes the maximum count
+    # print( df.groupby([param_col])[bound_col].mean())
+    result = df.groupby([param_col])[bound_col].mean().idxmin()
+    return result
+
+def get_df_from_failures(failures: set, df: pd.DataFrame):
+    df = df.loc[df['identifier'].isin(failures)].copy()
+    df.rename(columns={'num_sols': 'num_solutions'}, inplace=True)
+    return df
+
+def get_complete_failures(simple_df, reduced_df, blocks_out_file: str, jobs_file: str):
+    results_df = pd.read_csv(blocks_out_file)
+    simple_jobs = []
+    reduced_jobs = []
+    simple_failures = set()
+    reduced_failures = set()
+    with open(jobs_file) as f:
+        for line in f:
+            identifier, job_type = line.strip().split(',')
+            if job_type == 'gibbs':
+                simple_jobs.append(identifier)
+            else:
+                reduced_jobs.append(identifier)
+    print(len(simple_jobs), len(reduced_jobs))
+    for identifier in simple_jobs:
+        if identifier not in simple_df['identifier'].values:
+            simple_failures.add(identifier)
+    for identifier in reduced_jobs:
+        if identifier not in reduced_df['identifier'].values:
+            reduced_failures.add(identifier)
+    simple_fail_df = get_df_from_failures(simple_failures, results_df)
+    reduced_fail_df = get_df_from_failures(reduced_failures, results_df)
+    return simple_fail_df, reduced_fail_df
+
 
 if __name__ == '__main__':
     parser_builder.parse_args()
     print(parser_builder.args)
     args = parser_builder.args
 
-    simple_df, reduced_df = load_results(args.mcmc_output_dir)
+    blocks_out_file = os.path.join(args.mcmc_output_dir, 'all_blocks.csv')
+    jobs_file = os.path.join(args.mcmc_output_dir, 'sampled_block_ids.txt')
 
-    add_mixing_time(simple_df)
+    simple_df, reduced_df = load_results(args.mcmc_output_dir)
+    simple_fail_df, reduced_fail_df = get_complete_failures(simple_df, reduced_df, blocks_out_file, jobs_file)
+    print(len(simple_fail_df), 'simple failures')
+    if len(simple_fail_df) == 0:
+        simple_fail_df = None
+    if len(reduced_fail_df) == 0:
+        reduced_fail_df = None
+
+    add_mixing_time_simple(simple_df)
     add_exp_mixing_time(simple_df)
-    add_mixing_time(reduced_df)
+    add_mixing_time_reduced(reduced_df)
+
+    print(get_opt_global_param(simple_df, 'gamma', 'exp_mixing_time_lb'))
+    print(get_opt_global_param(reduced_df, 'k', 'mixing_time_lb'))
 
     full_reduced_df = reduced_df.copy()
 
@@ -251,16 +343,25 @@ if __name__ == '__main__':
     opt_full_reduced_df_lb = get_min_mixing_time_df(full_reduced_df, 'mixing_time_lb')
     opt_full_reduced_df_ub = get_min_mixing_time_df(full_reduced_df, 'mixing_time_ub')
 
-    opt_param(opt_simple_df, 'gamma')
-    opt_param(opt_reduced_df, 'k')
+    opt_param(opt_simple_df, 'gamma', save_file=f'./img/{args.state}_opt_param_gamma.png')
+    opt_param(opt_reduced_df, 'k', save_file=f'./img/{args.state}_opt_param_k.png')
 
     # scatter_solutions_vs_states(opt_simple_df)
     # scatter_mixing_times(opt_simple_df, opt_reduced_df, 'num_solutions')
-    scatter_mixing_times(opt_simple_df, opt_reduced_df, 'num_elements', save_file=f'./img/{args.state}_all_num_elements_mixing_time.png')
+    scatter_mixing_times(opt_simple_df,
+                         opt_reduced_df,
+                         'num_elements',
+                         simple_fail_df,
+                         reduced_fail_df,
+                         save_file=f'./img/{args.state}_all_num_elements_mixing_time.png')
     # scatter_mixing_time_ratios(opt_simple_df, opt_reduced_df, bound='upper')
     # scatter_only_reduced(opt_full_reduced_df_ub, 'num_solutions', 'mixing_time_ub')
     # scatter_only_reduced(opt_full_reduced_df_lb, 'num_elements', 'mixing_time_lb')
-    scatter_only_reduced(opt_full_reduced_df_lb, 'num_solutions', 'mixing_time_lb', save_file=f'./img/{args.state}_num_solutions_mtlb.png')
+    scatter_only_reduced(opt_full_reduced_df_lb,
+                         'num_solutions',
+                         'mixing_time_lb',
+                         reduced_fail_df,
+                         save_file=f'./img/{args.state}_num_solutions_mtlb.png')
     connectivity_analysis(full_reduced_df, os.path.join(args.mcmc_output_dir, 'disconnected_graphs.txt'))
 
     # max_mixing_time(full_reduced_df)
@@ -271,7 +372,6 @@ if __name__ == '__main__':
             'exp_mixing_time_lb',
             'gamma',
             save_file=f'./img/{args.state}_gamma_exp_mixing_time_lb.png',
-            title=r'Lower bound on $N_{\gamma}$ for $M_{\gamma}$',
             )
     # plot_column(simple_df, 'exp_mixing_time_ub', 'gamma')
     plot_column(
