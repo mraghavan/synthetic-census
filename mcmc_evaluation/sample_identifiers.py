@@ -20,7 +20,7 @@ parser_builder = ParserBuilder(
          'num_samples': True,
          })
 
-def get_relevant_blocks(results_dir: str, task_name: str, max_num_sols: int):
+def get_relevant_blocks(results_dir: str, task_name: str):
     pattern = re.compile(rf'{task_name}_\d+_\d+.pkl')
     results_list = []
     for fname in os.listdir(results_dir):
@@ -75,7 +75,7 @@ if __name__ == '__main__':
     args = parser_builder.args
 
     sample_size = args.num_samples
-    results_df = get_relevant_blocks(args.synthetic_output_dir, args.task_name, args.num_sols)
+    results_df = get_relevant_blocks(args.synthetic_output_dir, args.task_name)
 
     samples = [
             {'min_hh': 5, 'max_hh': 20, 'num_samples': sample_size, 'type': 'gibbs'},
@@ -85,7 +85,9 @@ if __name__ == '__main__':
 
     print('Total number of blocks', len(results_df))
     filtered_df = results_df[(results_df['level'] == 1) & (results_df['num_sols'] < args.num_sols)]
-    print('Fraction eligible', len(filtered_df) / len(results_df))
+
+    largest_max_hh = max([sample['max_hh'] for sample in samples])
+    print('Overall eligible', len(filtered_df[filtered_df['num_elements'] <= largest_max_hh]) / len(results_df))
 
     full_sample = []
     for sample in samples:
