@@ -16,6 +16,12 @@ def exp_normalize(dist: dict):
     dist = OrderedDict({k: np.exp(v - m) for k, v in dist.items()})
     return normalize(dist)
 
+def exp_noramlize_list(l: list):
+    m = max(l)
+    new_l = [np.exp(i - m) for i in l]
+    s = sum(new_l)
+    return [i / s for i in new_l]
+
 def get_ordering(dist: dict):
     return sorted(list(dist.keys()))
 

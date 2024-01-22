@@ -6,7 +6,7 @@ from functools import lru_cache
 import random
 import numpy as np
 import multiprocessing as mp
-from ..utils.knapsack_utils import perms_to_combs, counter_minus, tup_sum, prod, is_eligible, tup_minus, tup_plus, counter_minus, is_feasible, normalize
+from ..utils.knapsack_utils import perms_to_combs, counter_minus, tup_sum, prod, is_eligible, tup_minus, tup_plus, counter_minus, is_feasible, normalize, exp_normalize, scipy_multinomial, exp_noramlize_list
 from ..utils.ip_distribution import ip_solve
 
 MAX_SOLUTIONS = 1000
@@ -15,6 +15,16 @@ def get_log_prob(sol, dist):
     if len(sol) == 0:
         return 0
     return sum(log(dist[hh]) for hh in sol) + log(perms_to_combs(sol))
+
+def get_log_prob_vector(sol: np.ndarray, dist: dict):
+    if len(sol) == 0:
+        return 0
+    nonzero = np.nonzero(sol)[0]
+    s = 0
+    for i in nonzero:
+        s += log(dist[i]) * sol[i]
+    s += log(scipy_multinomial(sol[nonzero]))
+    return s
 
 def sols_equal(sol1, sol2):
     c = Counter()
@@ -30,6 +40,10 @@ class MCMCSampler:
         self.dist = dist
         self.num_iterations = num_iterations
         self.k = k
+        self.all_hhs = sorted(self.dist.keys())
+        self.V = np.array([hh for hh in self.all_hhs], dtype=np.int64).T
+        self.hh_map = {hh: i for i, hh in enumerate(self.all_hhs)}
+        self.index_dist = {i: self.dist[hh] for i, hh in enumerate(self.all_hhs)}
 
     @lru_cache(maxsize=None)
     def ip_solve_cached(self, counts):
@@ -41,33 +55,6 @@ class MCMCSampler:
         elif len(solutions) >= MAX_SOLUTIONS:
             raise Exception('Too many solutions')
         return solutions
-
-    def get_g_x_xprime_and_g_xprime_x(self, x, xprime):
-        # Currently unused
-        # print('x', x)
-        # print('xprime', xprime)
-        all_ys, all_removed = self.find_all_feasible_removals(x, xprime)
-        counter_x = Counter(x)
-        counter_xprime = Counter(xprime)
-        g_xprime_given_x = 0
-        g_x_given_xprime = 0
-        for y, removed in zip(all_ys, all_removed):
-            pr_y_given_x = self.get_y_given_x(removed, counter_x)
-            # print('y given x', pr_y_given_x)
-            counter_removed_prime = counter_minus(Counter(xprime), y)
-            removed_prime = tuple(counter_removed_prime.elements())
-            pr_y_given_xprime = self.get_y_given_x(removed_prime, counter_xprime)
-            # print('y given xprime', pr_y_given_xprime)
-            num_sols = len(self.ip_solve_cached(tup_sum(removed)))
-            if num_sols >= MAX_SOLUTIONS:
-                raise Exception('Too many solutions')
-            g_x_given_xprime += pr_y_given_xprime / num_sols
-            g_xprime_given_x += pr_y_given_x / num_sols
-        return g_x_given_xprime, g_xprime_given_x
-
-    def get_y_given_x(self, removed, counter_x):
-        removed_counter = Counter(removed)
-        return prod([comb(counter_x[a], removed_counter[a]) for a in removed_counter]) / comb(sum(counter_x.values()), len(removed))
 
     def find_all_feasible_removals(self, x, xprime):
         counter_xprime = Counter(xprime)
@@ -89,7 +76,6 @@ class MCMCSampler:
             else:
                 counter_must_remove[hh] -= 1
         assert len(remaining) + len(must_remove) == len(x)
-        #TODO do we actually want handle duplicates this way?
         all_removed = []
         all_ys = []
         remaining = sorted(remaining)
@@ -107,6 +93,14 @@ class MCMCSampler:
     def get_sampling_num(self, x_counter, removal_counter):
         return prod([comb(x_counter[a], removal_counter[a]) for a in removal_counter])
 
+    def get_sampling_num_vector(self, x: np.ndarray, removal: np.ndarray):
+        removal_nonzero = np.nonzero(removal)[0]
+        p = 1
+        for a in removal_nonzero:
+            assert x[a] >= removal[a]
+            p *= comb(x[a], removal[a])
+        return p
+
     def generate_random_removal(self, x: tuple):
         # remove k elements at random
         remove_indices = np.random.choice(len(x), self.k, replace=False)
@@ -116,65 +110,57 @@ class MCMCSampler:
             return removed
         else:
             return None
+    
+    def generate_random_removal_vector(self, x: np.ndarray):
+        # remove k elements at random
+        nonzeros = np.nonzero(x)[0]
+        nonzeros_with_multiplicity = np.repeat(nonzeros, x[nonzeros])
+        remove_indices = np.random.choice(nonzeros_with_multiplicity, self.k, replace=False)
+        removal = np.bincount(remove_indices, minlength=len(x))
+        if np.random.random() < 1/self.get_sampling_num_vector(x, removal):
+            return removal
+        else:
+            return None
 
     def mcmc_solve(self, counts: tuple):
-        # TODO Gibbs
-        # get initial solution using ip_solve
         current_solution = ip_solve(counts, self.dist, num_solutions=1)[0]
-        # print('Initial solution:', current_solution)
+        current_solution_array = np.zeros(len(self.dist), dtype=np.int64)
+        for hh in current_solution:
+            current_solution_array[self.hh_map[hh]] += 1
         assert(len(current_solution) > self.k)
         for _ in range(self.num_iterations):
-            # TODO make this use get_next_state
-            # print('Iteration', i, current_solution)
             # Make the chain lazy
             if np.random.random() < 0.5:
                 continue
             # randomly remove k items from the solution
-            removed = self.generate_random_removal(current_solution)
+            removed = self.generate_random_removal_vector(current_solution_array)
             if removed is None:
                 continue
-            counter_removed = Counter(removed)
-            xprime = []
-            for hh in current_solution:
-                if counter_removed[hh] == 0:
-                    xprime.append(hh)
-                else:
-                    counter_removed[hh] -= 1
-            # print('Removing', removed)
+            xprime = current_solution_array - removed
             # use ip_solve to solve the new subproblem
-            all_solutions = self.ip_solve_cached(tup_sum(removed))
+            # TODO change this to ip_enumerate?
+            all_solutions = self.ip_solve_cached(tuple(self.V.dot(removed)))
             if len(all_solutions) >= MAX_SOLUTIONS:
                 # this means our choice of k was too large
-                raise Exception('Too many solutions')
+                raise Exception('Too many solutions; k is too large')
             if len(all_solutions) == 1:
                 continue
-            # TODO make sure this works
-            all_solutions.remove(removed)
-            # randomly choose one of the solutions
-            xprime += all_solutions[np.random.choice(len(all_solutions))]
-            xprime = tuple(xprime)
-            if sols_equal(xprime, current_solution):
-                continue
-            x_prob = get_log_prob(current_solution, self.dist)
-            xprime_prob = get_log_prob(xprime, self.dist)
-            ratio = np.exp(xprime_prob - x_prob)
-            # print('ratio', ratio)
-
-            # Removing this because it's now symmetric
-            # g_x_given_xprime, g_xprime_given_x = self.get_g_x_xprime_and_g_xprime_x(current_solution, xprime)
-
-            # print('g_x_given_xprime', g_x_given_xprime)
-            # print('g_xprime_given_x', g_xprime_given_x)
-            # Chaning this because it's now symmetric
-            # A = min(1, ratio * g_x_given_xprime / g_xprime_given_x)
-
-            A = min(1, ratio)
-            # print('A', A)
-            if np.random.uniform() < A:
-                # print(i, 'Accepting', xprime)
-                current_solution = xprime
-                # MCMCSampler.num_transitions += 1
-        return current_solution
+            candidates = []
+            log_probs = []
+            for solution in all_solutions:
+                solution_array = np.zeros(len(self.dist), dtype=np.int64)
+                for hh in solution:
+                    solution_array[self.hh_map[hh]] += 1
+                candidate = xprime + solution_array
+                candidates.append(candidate)
+                log_probs.append(get_log_prob_vector(candidate, self.index_dist))
+            normalized_probs = exp_noramlize_list(log_probs)
+            current_solution = random.choices(candidates, weights=normalized_probs)[0]
+        solution_nonzero = np.nonzero(current_solution)[0]
+        solution_tuple = tuple()
+        for i in solution_nonzero:
+            solution_tuple += (self.all_hhs[i],) * current_solution[i]
+        return solution_tuple
 
     def get_next_state(self, counts: tuple, current_state: tuple):
         if np.random.random() < 0.5:
@@ -217,6 +203,9 @@ class SimpleMCMCSampler:
     def __init__(self, dist: dict, gamma=1.0):
         self.dist = dist
         self.gamma = gamma
+
+    def get_next_state_vector(self, counts: tuple, x: np.ndarray):
+        pass
 
     def get_next_state(self, counts: tuple, x: tuple, dist=None):
         # Make the chain lazy
@@ -322,7 +311,7 @@ def get_sol_dist(counts, dist, num_samples=400):
         d[tuple(sorted(sol))] += 1
     return d
 
-def main():
+def run_test():
     dist = {
             (1, 0, 1): 1,
             (0, 1, 1): 1,
@@ -358,8 +347,10 @@ def main():
     d = Counter()
     # num_samples = 1000
     # num_iterations = 1000
-    pool = mp.Pool(mp.cpu_count())
-    dists = pool.starmap(get_sol_dist, [(counts, dist)] * mp.cpu_count())
+    # num_threads = mp.cpu_count()
+    num_threads = 1
+    pool = mp.Pool(num_threads)
+    dists = pool.starmap(get_sol_dist, [(counts, dist)] * num_threads)
     d = sum(dists, Counter())
     print('Total samples', sum(d.values()))
     print('Approx error', 1/np.sqrt(sum(d.values())))
@@ -367,8 +358,8 @@ def main():
         # sol = sampler.mcmc_solve((5, 1, 5), num_iterations=num_iterations)
         # d[tuple(sorted(sol))] += 1
     print(normalize(d))
+    all_solutions = ip_solve(counts, dist)
+    solution_dist = {solution: get_log_prob(solution, dist) for solution in all_solutions}
+    print(exp_normalize(solution_dist))
     # print(sampler.ip_solve_cached.cache_info())
     # print('Transition fraction', MCMCSampler.num_transitions / (num_samples * num_iterations))
-
-if __name__ == '__main__':
-    main()
