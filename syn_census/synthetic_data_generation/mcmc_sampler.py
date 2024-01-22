@@ -199,13 +199,49 @@ def counter_to_tuple(counter: Counter):
     return tuple(sorted(list(counter.elements())))
 
 class SimpleMCMCSampler:
-    # TODO Gibbs
     def __init__(self, dist: dict, gamma=1.0):
         self.dist = dist
         self.gamma = gamma
+        self.all_hhs = sorted(self.dist.keys())
+        self.V = np.array([hh for hh in self.all_hhs], dtype=np.int64).T
+        self.hh_map = {hh: i for i, hh in enumerate(self.all_hhs)}
+        self.index_dist = {i: self.dist[hh] for i, hh in enumerate(self.all_hhs)}
 
-    def get_next_state_vector(self, counts: tuple, x: np.ndarray):
-        pass
+    def get_next_state_vector(self, counts: tuple, x: np.ndarray, V: np.ndarray, all_hhs: list, index_dist: dict, cache: dict = {}):
+        if np.random.random() < 0.5:
+            return x
+        index = np.random.choice(len(x))
+        x[index] = 0
+        tup_x_index = (tuple(x), index)
+        if tup_x_index not in cache:
+            prev_prob = 1
+            # neighbor_dist = {}
+            nonzero = np.nonzero(x)[0]
+            if len(nonzero) > 0:
+                s_norm_without_i = sum(x[nonzero])
+            else:
+                s_norm_without_i = 0
+            v_i_norm = sum(all_hhs[index])
+            j = 0
+            neighbor_list = []
+            prob_list = []
+            while(np.all(V.dot(x) <= counts)):
+                # update probs
+                if j == 0:
+                    new_prob = 1
+                else:
+                    new_prob = prev_prob * ((s_norm_without_i + j) / j) * index_dist[index] * np.exp(self.gamma*v_i_norm)
+                neighbor_list.append(tuple(x))
+                prob_list.append(new_prob)
+                prev_prob = new_prob
+                x[index] += 1
+                j += 1
+            total = sum(prob_list)
+            normalized_prob_list = [p/total for p in prob_list]
+            cache[tup_x_index] = neighbor_list, normalized_prob_list
+        else:
+            neighbor_list, normalized_prob_list = cache[tup_x_index]
+        return np.array(random.choices(neighbor_list, normalized_prob_list), dtype=np.int64).flatten()
 
     def get_next_state(self, counts: tuple, x: tuple, dist=None):
         # Make the chain lazy
@@ -237,57 +273,55 @@ class SimpleMCMCSampler:
             return x
         return counter_to_tuple(xprime_counter)
 
-    def mcmc_solve(self, counts: tuple, num_iterations=1000):
-        current_solution = Counter() # type: Counter[tuple]
-        dist = {item: prob for item, prob in self.dist.items() if is_eligible(item, counts)}
+    def mcmc_iterate(self, counts: tuple, num_iterations: int, V: np.ndarray, all_hhs: list, index_dist: dict, cache: dict={}):
+        x = np.zeros(len(all_hhs), dtype=np.int64)
         for _ in range(num_iterations):
-            x_counter = current_solution
-            x = counter_to_tuple(x_counter)
-            xprime_counter = Counter(self.get_next_state(counts, x, dist))
-            if x_counter == xprime_counter:
-                continue
+            x = self.get_next_state_vector(counts, x, V, all_hhs, index_dist, cache)
+        return x
 
-            x_prob_diff_sum = self.get_prob_diff_sum(counts, x_counter)
-            x_prob = get_log_prob(tuple(current_solution.elements()), self.dist) - self.gamma * x_prob_diff_sum
-            xprime_prob_diff_sum = self.get_prob_diff_sum(counts, xprime_counter)
-            xprime_prob = get_log_prob(tuple(xprime_counter.elements()), self.dist) - self.gamma * xprime_prob_diff_sum
-            ratio = np.exp(xprime_prob - x_prob)
-            # print('ratio', ratio)
-            # print('g_x_given_xprime', g_x_given_xprime)
-            # print('g_xprime_given_x', g_xprime_given_x)
-            A = min(1, ratio)
-            # print('A', A)
-            if np.random.uniform() < A:
-                # print(i, 'Accepting', xprime)
-                current_solution = xprime_counter
-        return current_solution
+    def mcmc_solve(self, counts: tuple, num_iterations=1000):
+        cache = {}
+        # TODO num_iterations consistent
+        dist = {item: prob for item, prob in self.dist.items() if is_eligible(item, counts)}
+        all_hhs = sorted(dist.keys())
+        V = np.array([hh for hh in all_hhs], dtype=np.int64).T
+        # hh_map = {hh: i for i, hh in enumerate(all_hhs)}
+        index_dist = {i: self.dist[hh] for i, hh in enumerate(all_hhs)}
+        x = np.zeros(len(all_hhs), dtype=np.int64)
+        while np.any(V.dot(x) != counts):
+            x = self.mcmc_iterate(counts, num_iterations, V, all_hhs, index_dist, cache)
+        solution_nonzero = np.nonzero(x)[0]
+        solution_tuple = tuple()
+        for i in solution_nonzero:
+            solution_tuple += (all_hhs[i],) * x[i]
+        return solution_tuple
 
-    def mcmc_sample(self, counts, burn_in=10000, num_samples=10000):
-        current_solution = Counter()
-        sol_counter = Counter()
-        for i in range(burn_in + num_samples):
-            if i>= burn_in:
-                sol_counter[tuple(sorted(current_solution.elements()))] += 1
-            x_counter = current_solution
-            x = counter_to_tuple(x_counter)
-            xprime_counter = Counter(self.get_next_state(counts, x))
-            if x_counter == xprime_counter:
-                continue
+    # def mcmc_sample(self, counts, burn_in=10000, num_samples=10000):
+        # current_solution = Counter()
+        # sol_counter = Counter()
+        # for i in range(burn_in + num_samples):
+            # if i>= burn_in:
+                # sol_counter[tuple(sorted(current_solution.elements()))] += 1
+            # x_counter = current_solution
+            # x = counter_to_tuple(x_counter)
+            # xprime_counter = Counter(self.get_next_state(counts, x))
+            # if x_counter == xprime_counter:
+                # continue
 
-            x_prob_diff_sum = self.get_prob_diff_sum(counts, x_counter)
-            x_prob = get_log_prob(tuple(current_solution.elements()), self.dist) - self.gamma * x_prob_diff_sum
-            xprime_prob_diff_sum = self.get_prob_diff_sum(counts, xprime_counter)
-            xprime_prob = get_log_prob(tuple(xprime_counter.elements()), self.dist) - self.gamma * xprime_prob_diff_sum
-            ratio = np.exp(xprime_prob - x_prob)
-            # print('ratio', ratio)
-            # print('g_x_given_xprime', g_x_given_xprime)
-            # print('g_xprime_given_x', g_xprime_given_x)
-            A = min(1, ratio)
-            # print('A', A)
-            if np.random.uniform() < A:
-                # print(i, 'Accepting', xprime)
-                current_solution = xprime_counter
-        return normalize(sol_counter)
+            # x_prob_diff_sum = self.get_prob_diff_sum(counts, x_counter)
+            # x_prob = get_log_prob(tuple(current_solution.elements()), self.dist) - self.gamma * x_prob_diff_sum
+            # xprime_prob_diff_sum = self.get_prob_diff_sum(counts, xprime_counter)
+            # xprime_prob = get_log_prob(tuple(xprime_counter.elements()), self.dist) - self.gamma * xprime_prob_diff_sum
+            # ratio = np.exp(xprime_prob - x_prob)
+            # # print('ratio', ratio)
+            # # print('g_x_given_xprime', g_x_given_xprime)
+            # # print('g_xprime_given_x', g_xprime_given_x)
+            # A = min(1, ratio)
+            # # print('A', A)
+            # if np.random.uniform() < A:
+                # # print(i, 'Accepting', xprime)
+                # current_solution = xprime_counter
+        # return normalize(sol_counter)
 
     def get_prob_diff_sum(self, counts, x_counter):
         if sum(x_counter.values()) == 0:
@@ -303,11 +337,19 @@ def get_prob_diff_sum(counts, x_counter):
     assert all(x >= 0 for x in prob_diff)
     return sum(prob_diff)
 
-def get_sol_dist(counts, dist, num_samples=400):
+def get_sol_dist_reduced(counts, dist, num_samples=400):
     sampler = MCMCSampler(dist, k=3)
     d = Counter()
     for _ in range(num_samples):
         sol = sampler.mcmc_solve(counts)
+        d[tuple(sorted(sol))] += 1
+    return d
+
+def get_sol_dist_simple(counts, dist, num_samples=25):
+    sampler = SimpleMCMCSampler(dist, gamma=2)
+    d = Counter()
+    for _ in range(num_samples):
+        sol = sampler.mcmc_solve(counts, num_iterations=20000)
         d[tuple(sorted(sol))] += 1
     return d
 
@@ -321,45 +363,28 @@ def run_test():
     dist = normalize(dist)
     counts = (5, 1, 5)
 
-    # sampler = SimpleMCMCSampler(dist, gamma=2)
-
-    # sol_counter = sampler.mcmc_sample(counts, burn_in=1000000, num_samples=1000000)
-    # print(sol_counter)
-    # exact_sols = sum(v for k, v in sol_counter.items() if sampler.get_prob_diff_sum(counts, Counter(k)) == 0)
-    # print(exact_sols)
-    # actual_sol_dist = normalize({k: v for k, v in sol_counter.items() if sampler.get_prob_diff_sum(counts, Counter(k)) == 0})
-    # print(actual_sol_dist)
-
-    # sol_counter = Counter()
-    # for _ in range(1000):
-        # sol = sampler.mcmc_solve(counts, num_iterations=10000)
-        # sol_counter[tuple(sorted(sol.elements()))] += 1
-    # sol_counter = normalize(sol_counter)
-    # print(sol_counter)
-    # exact_sols = sum(v for k, v in sol_counter.items() if sampler.get_prob_diff_sum(counts, Counter(k)) == 0)
-    # print(exact_sols)
-    # actual_sol_dist = normalize({k: v for k, v in sol_counter.items() if sampler.get_prob_diff_sum(counts, Counter(k)) == 0})
-    # print(actual_sol_dist)
-
-    # print(tup_minus(counts, tup_sum(list(sol.elements()))))
-
-    # sampler = MCMCSampler(dist, k=4)
+    print('Testing simple')
     d = Counter()
-    # num_samples = 1000
-    # num_iterations = 1000
-    # num_threads = mp.cpu_count()
-    num_threads = 1
+    num_threads = mp.cpu_count()
     pool = mp.Pool(num_threads)
-    dists = pool.starmap(get_sol_dist, [(counts, dist)] * num_threads)
+    dists = pool.starmap(get_sol_dist_simple, [(counts, dist)] * num_threads)
     d = sum(dists, Counter())
     print('Total samples', sum(d.values()))
     print('Approx error', 1/np.sqrt(sum(d.values())))
-    # for _ in range(num_samples):
-        # sol = sampler.mcmc_solve((5, 1, 5), num_iterations=num_iterations)
-        # d[tuple(sorted(sol))] += 1
     print(normalize(d))
     all_solutions = ip_solve(counts, dist)
     solution_dist = {solution: get_log_prob(solution, dist) for solution in all_solutions}
     print(exp_normalize(solution_dist))
-    # print(sampler.ip_solve_cached.cache_info())
-    # print('Transition fraction', MCMCSampler.num_transitions / (num_samples * num_iterations))
+
+    print('Testing reduced')
+    d = Counter()
+    num_threads = mp.cpu_count()
+    pool = mp.Pool(num_threads)
+    dists = pool.starmap(get_sol_dist_reduced, [(counts, dist)] * num_threads)
+    d = sum(dists, Counter())
+    print('Total samples', sum(d.values()))
+    print('Approx error', 1/np.sqrt(sum(d.values())))
+    print(normalize(d))
+    all_solutions = ip_solve(counts, dist)
+    solution_dist = {solution: get_log_prob(solution, dist) for solution in all_solutions}
+    print(exp_normalize(solution_dist))
