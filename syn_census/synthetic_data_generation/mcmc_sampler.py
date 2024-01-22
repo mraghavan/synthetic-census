@@ -207,12 +207,19 @@ class SimpleMCMCSampler:
         self.hh_map = {hh: i for i, hh in enumerate(self.all_hhs)}
         self.index_dist = {i: self.dist[hh] for i, hh in enumerate(self.all_hhs)}
 
-    def get_next_state_vector(self, counts: tuple, x: np.ndarray, V: np.ndarray, all_hhs: list, index_dist: dict, cache: dict = {}):
+    @lru_cache(maxsize=None)
+    def get_eligible_indices(self, counts: tuple):
+        eligible = [i for i in range(len(self.all_hhs)) if is_eligible(self.all_hhs[i], counts)]
+
+        return eligible
+
+    def get_next_state_vector(self, counts: tuple, x: np.ndarray, cache: dict = {}):
         if np.random.random() < 0.5:
             return x
-        index = np.random.choice(len(x))
+        index = np.random.choice(self.get_eligible_indices(counts))
         x[index] = 0
         tup_x_index = (tuple(x), index)
+        array_counts = np.array(counts)
         if tup_x_index not in cache:
             prev_prob = 1
             # neighbor_dist = {}
@@ -221,16 +228,17 @@ class SimpleMCMCSampler:
                 s_norm_without_i = sum(x[nonzero])
             else:
                 s_norm_without_i = 0
-            v_i_norm = sum(all_hhs[index])
+            v_i_norm = sum(self.all_hhs[index])
             j = 0
             neighbor_list = []
             prob_list = []
-            while(np.all(V.dot(x) <= counts)):
+            remainder = array_counts - self.V.dot(x)
+            while(np.all(j * self.V[:, index] <= remainder)):
                 # update probs
                 if j == 0:
                     new_prob = 1
                 else:
-                    new_prob = prev_prob * ((s_norm_without_i + j) / j) * index_dist[index] * np.exp(self.gamma*v_i_norm)
+                    new_prob = prev_prob * ((s_norm_without_i + j) / j) * self.index_dist[index] * np.exp(self.gamma*v_i_norm)
                 neighbor_list.append(tuple(x))
                 prob_list.append(new_prob)
                 prev_prob = new_prob
@@ -241,7 +249,8 @@ class SimpleMCMCSampler:
             cache[tup_x_index] = neighbor_list, normalized_prob_list
         else:
             neighbor_list, normalized_prob_list = cache[tup_x_index]
-        return np.array(random.choices(neighbor_list, normalized_prob_list), dtype=np.int64).flatten()
+        next_x = np.array(random.choices(neighbor_list, normalized_prob_list), dtype=np.int64).flatten()
+        return next_x
 
     def get_next_state(self, counts: tuple, x: tuple, dist=None):
         # Make the chain lazy
@@ -273,27 +282,22 @@ class SimpleMCMCSampler:
             return x
         return counter_to_tuple(xprime_counter)
 
-    def mcmc_iterate(self, counts: tuple, num_iterations: int, V: np.ndarray, all_hhs: list, index_dist: dict, cache: dict={}):
-        x = np.zeros(len(all_hhs), dtype=np.int64)
+    def mcmc_iterate(self, counts: tuple, num_iterations: int, cache: dict={}):
+        x = np.zeros(len(self.all_hhs), dtype=np.int64)
         for _ in range(num_iterations):
-            x = self.get_next_state_vector(counts, x, V, all_hhs, index_dist, cache)
+            x = self.get_next_state_vector(counts, x, cache)
         return x
 
     def mcmc_solve(self, counts: tuple, num_iterations=1000):
         cache = {}
         # TODO num_iterations consistent
-        dist = {item: prob for item, prob in self.dist.items() if is_eligible(item, counts)}
-        all_hhs = sorted(dist.keys())
-        V = np.array([hh for hh in all_hhs], dtype=np.int64).T
-        # hh_map = {hh: i for i, hh in enumerate(all_hhs)}
-        index_dist = {i: self.dist[hh] for i, hh in enumerate(all_hhs)}
-        x = np.zeros(len(all_hhs), dtype=np.int64)
-        while np.any(V.dot(x) != counts):
-            x = self.mcmc_iterate(counts, num_iterations, V, all_hhs, index_dist, cache)
+        x = np.zeros(len(self.all_hhs), dtype=np.int64)
+        while np.any(self.V.dot(x) != counts):
+            x = self.mcmc_iterate(counts, num_iterations, cache)
         solution_nonzero = np.nonzero(x)[0]
         solution_tuple = tuple()
         for i in solution_nonzero:
-            solution_tuple += (all_hhs[i],) * x[i]
+            solution_tuple += (self.all_hhs[i],) * x[i]
         return solution_tuple
 
     # def mcmc_sample(self, counts, burn_in=10000, num_samples=10000):
