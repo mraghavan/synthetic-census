@@ -114,8 +114,11 @@ def scatter_mixing_times(simple_df: pd.DataFrame,
                          simple_fail_df: pd.DataFrame = None,
                          reduced_fail_df: pd.DataFrame = None,
                          save_file=''):
-    plt.scatter(simple_df[x_axis], simple_df['exp_mixing_time_lb'], label=r'$\underline{N}_{\gamma^*}$ (simple)')
-    plt.scatter(reduced_df[x_axis], reduced_df['mixing_time_ub'], marker='^', label=r'$\overline{N}_{k^*}$ (reduced)')
+    plt.scatter(simple_df[x_axis], simple_df['exp_mixing_time_lb'], label=r'$\underline{N}_{\gamma^*}$ (simple LB)')
+    plt.scatter(reduced_df[x_axis], reduced_df['mixing_time_lb'], marker='^', label=r'$\underline{N}_{k=3}$ (reduced LB)', zorder=10)
+    plt.scatter(reduced_df[x_axis], reduced_df['mixing_time_ub'], marker='v', label=r'$\overline{N}_{k=3}$ (reduced UB)', zorder=10)
+    # for i, row in reduced_df.iterrows():
+        # plt.plot([row[x_axis], row[x_axis]], [row['mixing_time_lb'], row['mixing_time_ub']], color='gray', linestyle='--')
     if simple_fail_df is not None or reduced_fail_df is not None:
         plt.gca().set_prop_cycle(None)
         vals = [df[x_axis] for df in [simple_fail_df, reduced_fail_df] if df is not None]
@@ -126,7 +129,8 @@ def scatter_mixing_times(simple_df: pd.DataFrame,
                  label=labels,
                  bins=reduced_df['num_elements'].max(),
                  color='red',
-                 hatch='//')
+                 hatch='//',
+                 zorder=0)
     if x_axis in AXIS_LABELS:
         plt.xlabel(AXIS_LABELS[x_axis])
     else:
@@ -150,7 +154,8 @@ def scatter_only_reduced(reduced_df: pd.DataFrame,
     # only show integer x ticks
     # plt.xticks(np.arange(min(reduced_df[x_axis]), max(reduced_df[x_axis])+1, 1.0))
     plt.xlabel(AXIS_LABELS[x_axis] if x_axis in AXIS_LABELS else x_axis)
-    plt.ylabel(AXIS_LABELS[column] if column in AXIS_LABELS else column)
+    # plt.ylabel(AXIS_LABELS[column] if column in AXIS_LABELS else column)
+    plt.ylabel(r'$\underline{N}_{k=3}$' if column == 'mixing_time_lb' else r'$\overline{N}_{k=3}$')
     plt.yscale('log')
     if reduced_fail_df is not None:
         plt.legend()
@@ -266,7 +271,12 @@ def opt_param(opt_df: pd.DataFrame, param_col: str, save_file=''):
     xs, ys, ss = zip(*[(x, y, 10*c[(x, y)]) for x, y in c])
     plt.scatter(xs, ys, s=ss)
     plt.xlabel('$m$')
-    plt.ylabel('Optimal ' + AXIS_LABELS[param_col] if param_col in AXIS_LABELS else param_col)
+    if param_col == 'k':
+        plt.ylabel('$k^*$')
+    elif param_col == 'gamma':
+        plt.ylabel(r'$\gamma^*$')
+    else:
+        plt.ylabel('Optimal ' + AXIS_LABELS[param_col] if param_col in AXIS_LABELS else param_col)
     if opt_df[param_col].dtype == 'int':
         # only show integer y ticks
         plt.yticks(np.arange(min(opt_df[param_col]), max(opt_df[param_col])+1, 1.0))
@@ -348,8 +358,10 @@ if __name__ == '__main__':
 
     # scatter_solutions_vs_states(opt_simple_df)
     # scatter_mixing_times(opt_simple_df, opt_reduced_df, 'num_solutions')
+    reduced_df_3 = reduced_df.loc[reduced_df['k'] == 3]
     scatter_mixing_times(opt_simple_df,
-                         opt_reduced_df,
+                         # opt_reduced_df,
+                         reduced_df_3,
                          'num_elements',
                          simple_fail_df,
                          reduced_fail_df,
@@ -357,7 +369,9 @@ if __name__ == '__main__':
     # scatter_mixing_time_ratios(opt_simple_df, opt_reduced_df, bound='upper')
     # scatter_only_reduced(opt_full_reduced_df_ub, 'num_solutions', 'mixing_time_ub')
     # scatter_only_reduced(opt_full_reduced_df_lb, 'num_elements', 'mixing_time_lb')
-    scatter_only_reduced(opt_full_reduced_df_lb,
+    full_reduced_df_3 = full_reduced_df.loc[full_reduced_df['k'] == 3]
+    # scatter_only_reduced(opt_full_reduced_df_lb,
+    scatter_only_reduced(full_reduced_df_3,
                          'num_solutions',
                          'mixing_time_lb',
                          reduced_fail_df,
