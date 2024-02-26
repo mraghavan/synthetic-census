@@ -9,11 +9,11 @@
 #SBATCH --mail-type=END
 if [ "$#" -eq 2 ]; then
     PARAM_FILE="$1"
-    TASK_NAME=$2
+    TASK_NAME="$2"
 else
     echo Missing arguments PARAM_FILE or TASK_NAME
     exit 1
 fi
 module load sloan/python/modules/python-3.6/gurobipy/9.0.1
 python3 -m pip install gurobipy
-python3 generate_data_shard.py --from_params "$PARAM_FILE" --task $SLURM_ARRAY_TASK_ID --num_tasks $SLURM_ARRAY_TASK_COUNT --task_name $TASK_NAME
+python3 generate_data_shard.py --from_params "$PARAM_FILE" --task $SLURM_ARRAY_TASK_ID --num_tasks $SLURM_ARRAY_TASK_COUNT --task_name "$TASK_NAME"

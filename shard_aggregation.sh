@@ -8,11 +8,10 @@
 #SBATCH --mail-type=END
 if [ "$#" -eq 2 ]; then
     PARAM_FILE="$1"
-    TASK_NAME=$2
+    TASK_NAME="$2"
 else
     echo Missing arguments PARAM_FILE or TASK_NAME
     exit 1
 fi
 module load sloan/python/modules/python-3.6/gurobipy/9.0.1
-echo Reading from job $1
-python3 aggregate_data_shards --from_params "$1" --task_name $2
+python3 aggregate_data_shards --from_params "$PARAM_FILE" --task_name "$TASK_NAME"
