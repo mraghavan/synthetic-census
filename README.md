@@ -1,3 +1,8 @@
+# Overview
+This repository provides a way to generate synthetic 2010 Census microdata at the household level.
+At a high level, it works by combining block-level aggregate statistics with a statewide sample of households.
+A detailed paper describing and evaluating this synthetic data generation method is forthcoming.
+
 # Getting things to run
 
 ## Requirements
@@ -22,21 +27,17 @@ We'll need a combination of data from NHGIS and PUMS from the census. For a part
   7. SUBMIT
 
 ## Basic setup
-Create a parameters file like the one below:
-<!--Create a file called `params.json` in the `code/` directory.-->
-<!--The input data will need to be in `[data]/[state]`, and the output will be written to `[output]/[state]`.-->
-<!--`num_sols` specifies the maximum number of soluions to be returned for a block.-->
-<!--`write` controls whether output files will be written.-->
-<!--Make sure you set `write` to 1 before you run.-->
-<!--Here's a sample:-->
+Create a parameters file like the one below (for Alabama):
 ```
 {
     "state": "AL",
     "micro_file": "$HOME/Desktop/census_data/AL/al.2010.pums.01.txt",
+    "person_micro_file": "$HOME/Desktop/census_data/output/AL/person_micro.csv",
     "block_file": "$HOME/Desktop/census_data/AL/block_data.csv",
     "block_clean_file": "$HOME/Desktop/census_data/AL/block_data_cleaned.csv",
     "synthetic_output_dir": "$HOME/Desktop/census_data/output/AL/",
-    "num_sols": 1000
+    "include_probs": false,
+    "num_sols": 5000,
 }
 ```
 Call it something like `AL_params.json`.
@@ -56,18 +57,18 @@ python3 preprocess.py --from_params [params_file]
 This will create the file `[block_clean_file]`.
 Computationally, this is fairly light and can be run locally.
 
-## Building the distribution
+## Building the dataset
 Make sure you've fulfilled the [requirements](#requirements).
 We use a map-reduce structure here.
 The map stage is done by `generate_data_shard.py`, and the reduce stage is done by `aggregate_data_shards.py`.
 You will likely need to use a computing cluster for this.
-For a medium-sized state, it will require tens of hours of compute time.
+For a medium-sized state, it will require hundreds or thousands of hours of compute time.
 
 ### Running the map stage
 Choose a label `[task_name]` (e.g., `AL`).
 This must be admissible in a file name.
 Choose a number `n` for the number of separate jobs to run.
-For a medium-sized state, `n=50` is reasonable.
+For a medium-sized state, `n=300` is reasonable.
 For `i` from 1 through `n`, run 
 ```
 python3 generate_data_shard.py --from_params [params_file] --task i --num_tasks n --task_name [task_name]
@@ -95,7 +96,7 @@ You will need to modify your `[params_file]` to inclue the appropriate file path
 If using `slurm`, you can modify the following files to generate a dataset.
 First, modify `shard_generation.sh`, which looks like this:
 
-https://github.com/mraghavan/synthetic-census/blob/098f944d6b803be40c82daa48f4655ee1826968e/shard_generation.sh
+https://github.com/mraghavan/synthetic-census/blob/2061035bae5b59545c10ef372776dca164318726/shard_generation.sh#L1-L19
 
 Change the partition parameter to one that is valid for your cluster.
 Make sure you change `out_files` to a directory where you want text logs to go (and make sure that directory exists).
@@ -104,7 +105,7 @@ Depending on the size of the state, you may need to modify the resources allocat
 
 Then, modify `shard_aggregation.py`, which looks like this:
 
-https://github.com/mraghavan/synthetic-census/blob/refactor/shard_aggregation.sh
+https://github.com/mraghavan/synthetic-census/blob/2061035bae5b59545c10ef372776dca164318726/shard_aggregation.sh#L1-L17
 
 Change the partition parameter to one that is valid for your cluster.
 Again, make sure the text logs go to a valid directory and that appropriate modules are loaded if necessary.
@@ -112,7 +113,7 @@ The reduce phase is probably computationally light enough to run locally, but yo
 
 When this is done, you can run
 ```
-./generate_dataset.sh [task_name]
+./generate_dataset.sh [params_file] [task_name]
 ```
 
 This will set up both the map and reduce jobs and produce the dataset `[synthetic_output_dir]/[task_name]_synthetic.csv`.
@@ -169,42 +170,42 @@ The synthetic dataset has the following columns:
 
 `AGE_ACCURACY` is true if tables `P3` and `P16` agree on the total number of residents in the block, and false otherwise. In VT, this is true for ~98% of blocks.
 
-# Swapping
+<!--# Swapping-->
 
-First, download the 2010 shapefiles from [NHGIS](https://data2.nhgis.org/main).
-- Download the US shapefiles for County, Census Tract, Congressional District 2008-2013, 110th-112th Congress, State Legislative District (Upper Chamber), State Legislative District (Lower Chamber). See the image below. Unzip all of these files into `[data]/US/shapefiles`.
-![Screenshot of US shapefiles](./img/us_shapefiles.png)
-- Download the state shapefiles.
-  - Enter `BLCK_GRP OR BLOCK` into Geographic Levels and set the year to 2010.
-  - Find the `2010 TIGER/LINE +` shapefile for the state in question in the GIS FILES tab.
-  - Unzip all the files into `[data]/[state]/shapefiles`.
+<!--First, download the 2010 shapefiles from [NHGIS](https://data2.nhgis.org/main).-->
+<!--- Download the US shapefiles for County, Census Tract, Congressional District 2008-2013, 110th-112th Congress, State Legislative District (Upper Chamber), State Legislative District (Lower Chamber). See the image below. Unzip all of these files into `[data]/US/shapefiles`.-->
+<!--![Screenshot of US shapefiles](./img/us_shapefiles.png)-->
+<!--- Download the state shapefiles.-->
+  <!--- Enter `BLCK_GRP OR BLOCK` into Geographic Levels and set the year to 2010.-->
+  <!--- Find the `2010 TIGER/LINE +` shapefile for the state in question in the GIS FILES tab.-->
+  <!--- Unzip all the files into `[data]/[state]/shapefiles`.-->
 
-For all of these, make sure to download `2010 TIGER/LINE +` files.
+<!--For all of these, make sure to download `2010 TIGER/LINE +` files.-->
 
-To get swapped data, name the synthetic dataset `[output]/[state]/[name]_synthetic.csv`.
-Run `python3 swapping.py [name]`, which will run swap the dataset and write the resulting dataset to `[output]/[state]/[name]_swapped.csv`.
+<!--To get swapped data, name the synthetic dataset `[output]/[state]/[name]_synthetic.csv`.-->
+<!--Run `python3 swapping.py [name]`, which will run swap the dataset and write the resulting dataset to `[output]/[state]/[name]_swapped.csv`.-->
 
-The swapping parameters (including the swap rate) can be found and edited in `swapping_params.json`.
+<!--The swapping parameters (including the swap rate) can be found and edited in `swapping_params.json`.-->
 
-## Running on slurm
-To run on slurm, first create a `conda` environment with the following commands:
-```
-conda create --name geopandas
-source activate geopandas
-conda install geopandas
-```
-Then, run `sbatch swap_script.sh`.
+<!--## Running on slurm-->
+<!--To run on slurm, first create a `conda` environment with the following commands:-->
+<!--```-->
+<!--conda create --name geopandas-->
+<!--source activate geopandas-->
+<!--conda install geopandas-->
+<!--```-->
+<!--Then, run `sbatch swap_script.sh`.-->
 
-(Harvard's cluster seems to require `conda` because the standard `python3` won't allow the installation of `geopandas` for some reason.
-In the future, it may be worth re-trying to avoid the added hassle of `conda`.)
+<!--(Harvard's cluster seems to require `conda` because the standard `python3` won't allow the installation of `geopandas` for some reason.-->
+<!--In the future, it may be worth re-trying to avoid the added hassle of `conda`.)-->
 
-# ToyDown
+<!--# ToyDown-->
 
-This needs to be expanded.
+<!--This needs to be expanded.-->
 
-Basic instructions:
-- Run `python3 hh_to_person_microdata.py [name]`.
-- Run `python3 run_toydown.py [name] 1 1 1 equal` (or with other parameters).
+<!--Basic instructions:-->
+<!--- Run `python3 hh_to_person_microdata.py [name]`.-->
+<!--- Run `python3 run_toydown.py [name] 1 1 1 equal` (or with other parameters).-->
 
-# How it works
-To be written
+<!--# How it works-->
+<!--To be written-->
