@@ -147,7 +147,7 @@ The synthetic dataset has the following columns:
 |`TWO_OR_MORE`|Total number of people in this household of race 'Two or More Races' |
 |`NUM_HISP`| Number of Hispanic people in this household |
 |`18_PLUS`| Total number of people in this household aged 18 or more |
-|`HH_NUM`| Household index within block |
+|`HH_NUM`| Unique household index within block |
 |`ACCURACY`| How accurate a solver was used (1, 2, or 3; see below)|
 |`AGE_ACCURACY`| Whether this block had accurate age information |
 |`identifier`| Unique block ID |
