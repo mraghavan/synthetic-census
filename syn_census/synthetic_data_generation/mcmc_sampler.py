@@ -122,8 +122,11 @@ class MCMCSampler:
         else:
             return None
 
-    def mcmc_solve(self, counts: tuple):
-        current_solution = ip_solve(counts, self.dist, num_solutions=1)[0]
+    def mcmc_solve(self, counts: tuple, initial_solution: tuple=None):
+        if initial_solution is None:
+            current_solution = ip_solve(counts, self.dist, num_solutions=1)[0]
+        else:
+            current_solution = initial_solution
         current_solution_array = np.zeros(len(self.dist), dtype=np.int64)
         for hh in current_solution:
             current_solution_array[self.hh_map[hh]] += 1

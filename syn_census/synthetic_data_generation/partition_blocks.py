@@ -3,10 +3,11 @@ import os
 import pickle as pkl
 import sys
 import numpy as np
-from .guided_solver import SOLVER_PARAMS, SOLVER_RESULTS, SolverResults, solve
-from ..utils.encoding import encode_hh_dist
+from .guided_solver import SOLVER_PARAMS, SOLVER_RESULTS, SolverResults, solve, reduce_dist
+from ..utils.encoding import encode_hh_dist, encode_row
 from ..utils.census_utils import *
 from ..preprocessing.build_micro_dist import read_microdata
+from .mcmc_sampler import MCMCSampler
 
 def read_block_data(block_clean_file: str):
     return pd.read_csv(block_clean_file)
@@ -52,6 +53,8 @@ def generate_data(
             print('Error loading tmp file', tmp_file)
     already_finished = set([o['id'] for o in output])
 
+    samplers = {}
+
     for i, (ind, row) in enumerate(df.iterrows()):
         print()
         print('index', ind, 'id', row['identifier'])
@@ -62,6 +65,22 @@ def generate_data(
         sol = solve(row, hh_dist)
         print(len(sol), 'unique solutions')
         chosen = sample_from_sol(sol)
+        # If not all solutions have been found, use MCMC
+        if len(sol) == num_sols:
+            print('Using MCMC')
+            counts = encode_row(row)
+            level = SOLVER_RESULTS.level
+            use_age = SOLVER_RESULTS.use_age
+            solve_dist = hh_dist
+            if level > 1:
+                solve_dist = reduce_dist(hh_dist, level, use_age)
+                counts = counts.reduce(level, use_age)
+            tag = (level, use_age)
+            if tag not in samplers:
+                #TODO: make num_iterations and k parameters
+                samplers[tag] = MCMCSampler(solve_dist, num_iterations=10000, k=3)
+            sampler = samplers[tag]
+            chosen = sampler.mcmc_solve(encode_row(row), chosen)
         chosen = tuple(hh.to_sol() for hh in chosen)
         if hasattr(chosen[0], 'get_type'):
             chosen_types = tuple(c.get_type() for c in chosen)
