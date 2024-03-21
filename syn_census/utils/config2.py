@@ -60,7 +60,7 @@ class ParserBuilder():
                 # make sure it's a valid file path
                 elif req in self.file_paths:
                     if not os.path.exists(self.args.__dict__[req]):
-                        raise ValueError('%s does not exist' % self.args.__dict__[req])
+                        print('Warning: %s does not exist' % self.args.__dict__[req])
 
 # May need these later
 # US_DIR = os.path.expandvars(params['data']) + 'US/shapefiles/'
