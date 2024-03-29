@@ -92,7 +92,7 @@ def load_sample_and_accs(task_name, dist, out_dir):
     sample = {}
     accs = {}
     errors = []
-    for fname in os.listdir(out_dir):
+    for fname in sorted(os.listdir(out_dir)):
         if re.match(task_name + '[0-9]+_[0-9]+.pkl', fname):
             print('Reading from', out_dir+fname)
             with open(out_dir + fname, 'rb') as f:
