@@ -34,6 +34,8 @@ def generate_data(
     df = read_block_data(block_clean_file)
     # non-empty rows
     df = df[df['H7X001'] > 0]
+    # Densely populated blocks take longer to solve, so this distributes the load better
+    df = df.sample(frac=1, random_state=0)
     n = len(df)
     first_ind = int((task-1) / num_tasks * n)
     last_ind = int(task/num_tasks * n)
@@ -78,9 +80,12 @@ def generate_data(
             tag = (level, use_age)
             if tag not in samplers:
                 #TODO: make num_iterations and k parameters
-                samplers[tag] = MCMCSampler(solve_dist, num_iterations=10000, k=3)
+                samplers[tag] = MCMCSampler(solve_dist, num_iterations=10000, k=3, max_solutions=num_sols)
             sampler = samplers[tag]
-            chosen = sampler.mcmc_solve(encode_row(row), chosen)
+            try:
+                chosen = sampler.mcmc_solve(encode_row(row), chosen)
+            except:
+                print('Error in MCMC')
         chosen = tuple(hh.to_sol() for hh in chosen)
         if hasattr(chosen[0], 'get_type'):
             chosen_types = tuple(c.get_type() for c in chosen)
@@ -103,7 +108,7 @@ def generate_data(
             if include_probs:
                 d['prob_list'] = list(sol.values())
             output.append(d)
-            if i > 0 and i % 30 == 0 and tmp_file:
+            if i > 0 and i % 10 == 0 and tmp_file:
                 print('Saving tmp file', tmp_file)
                 with open(tmp_file, 'wb') as f:
                     pkl.dump((output, errors), f)
