@@ -8,6 +8,7 @@ from scipy.optimize import curve_fit
 from scipy.stats import lognorm
 import re
 import matplotlib.pyplot as plt
+from matplotlib import ticker
 # from ..utils.config2 import ParserBuilder
 from .representativeness import add_tex_var, print_all_tex_vars
 
@@ -25,15 +26,15 @@ def evaluate_coverage(task_name: str, synthetic_output_dir: str, num_sols: int):
     big_results_df = pd.DataFrame(columns=list(funcs.keys()))
     unsorted_probs = np.zeros((num_sols,))
     sorted_probs = np.zeros((num_sols,))
-    for fname in os.listdir(d):
+    for fname in sorted(os.listdir(d)):
         if re.match(task_name + '[0-9]+_[0-9]+.pkl', fname):
             print('Reading from', d+fname, file=sys.stderr)
             with open(d + fname, 'rb') as f:
                 result_list = pickle.load(f)
                 # Dataframe with dimensions (len(funcs), len(result_list)) with columns given by the keys in funcs filled with zeros
-                results_df = pd.DataFrame(np.zeros((len(result_list), len(funcs))), columns=list(funcs.keys()))
+                results_df = pd.DataFrame(np.zeros((len(result_list), len(funcs) + 2)), columns=(list(funcs.keys())) + ['level', 'age'])
                 for i, results in enumerate(result_list):
-                    results_df.loc[i] = [f(results['prob_list'], results['sol']) for f in funcs.values()]
+                    results_df.loc[i] = [f(results['prob_list'], results['sol']) for f in funcs.values()] + [results['level'], results['age']]
                     if len(results['prob_list']) == num_sols:
                         unsorted_probs += results['prob_list']
                         sorted_probs += sorted(results['prob_list'], reverse=True)
@@ -95,7 +96,7 @@ def fit_truncated_pl(xs, ys):
 
     plt.scatter(xs, ys, label='Original Data')
     # plt.step(xs, ys, label='Original Cumulative Data', where='post')
-    plt.plot(smooth_xs, fit_ccdf, label=f'Power Law Fit: a={a:.2f}, b={b:.2f}', color='red')
+    plt.plot(smooth_xs, fit_ccdf, label=f'Power law fit', color='red')
     # dashed vertical line at x = max(xs)
     plt.axvline(x=max(xs), color='black', linestyle='--')
     # plt.plot(smooth_xs, fit_ys, label=f'Power Law Fit: a={a:.2f}, b={b:.2f}', color='red')
@@ -103,9 +104,21 @@ def fit_truncated_pl(xs, ys):
     plt.yscale('log')
     # plt.ylim(bottom=0.0000001)
     plt.xlabel(r'$s$')
-    plt.ylabel(r'Fraction of blocks with $|\mathcal{X}| \geq s$')
+    plt.ylabel(r'Fraction of blocks with $|\mathcal{X}_b| \geq s$')
+    # TODO don't use sci notation for y axis
+
     plt.legend()
     plt.tight_layout()
+    plt.gca().yaxis.set_minor_formatter(ticker.FormatStrFormatter("%.1f"))
+    plt.gca().yaxis.set_major_formatter(ticker.FormatStrFormatter("%.1f"))
+
+    # plt.gca().get_yaxis().set_major_formatter(FormatStrFormatter('%g'))
+    # plt.gca().get_yaxis().set_major_formatter(StrMethodFormatter('{x:,.0f}'))
+    # plt.gca().get_yaxis().set_major_formatter(ScalarFormatter(useMathText=False))
+    # plt.ticklabel_format(style='plain', axis='both')
+    # plt.ticklabel_format(style='plain', axis='both')
+
+
 
     # popt, pcov = curve_fit(F, xs, ys)
     # print(popt)
@@ -120,7 +133,6 @@ def print_results(
         num_sols: int,
         task_name: str=''):
     state = state.upper()
-    task_name = task_name
     if task_name != '':
         task_name += '_'
     fname = os.path.join(synthetic_output_dir, task_name + 'sampling_results.pkl')
@@ -133,6 +145,22 @@ def print_results(
         with open(fname, 'wb') as f:
             pickle.dump((results_df, unsorted_probs, sorted_probs), f)
     print(results_df.describe(), file=sys.stderr)
+
+    original_results_df = results_df.copy()
+
+    age_accurate = results_df[results_df['age'] == True]
+    print('age accurate fraction', len(age_accurate)/len(results_df), file=sys.stderr)
+    
+    results_df = results_df[results_df['age'] == True]
+
+    level_1 = results_df[results_df['level'] == 1]
+    level_2 = results_df[results_df['level'] != 1]
+    print('level 1', len(level_1), file=sys.stderr)
+    print('level > 1', len(level_2), file=sys.stderr)
+    print('level 1 fraction', len(level_1)/len(results_df), file=sys.stderr)
+
+    results_df = results_df[results_df['level'] == 1]
+
     solution_counts = results_df['total_solutions'].values
     results_df['total_solutions'].hist()
     plt.xlabel('Number of solutions')
@@ -183,6 +211,7 @@ def print_results(
     vals = vals / vals.sum()
     cumulative_sums = np.cumsum(vals)
     fit_truncated_pl(sorted_values, cumulative_sums)
+    print('Saving to', f'./img/{task_name}power_law_solution_count.png')
     plt.savefig(f'./img/{task_name}power_law_solution_count.png', dpi=300)
     plt.show()
     
