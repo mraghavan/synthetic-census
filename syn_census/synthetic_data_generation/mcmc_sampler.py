@@ -9,8 +9,6 @@ import multiprocessing as mp
 from ..utils.knapsack_utils import perms_to_combs, counter_minus, tup_sum, prod, is_eligible, tup_minus, tup_plus, counter_minus, is_feasible, normalize, exp_normalize, scipy_multinomial, exp_noramlize_list
 from ..utils.ip_distribution import ip_solve
 
-MAX_SOLUTIONS = 1000
-
 def get_log_prob(sol, dist):
     if len(sol) == 0:
         return 0
@@ -36,7 +34,7 @@ def sols_equal(sol1, sol2):
 
 class MCMCSampler:
     # num_transitions = 0
-    def __init__(self, dist, num_iterations=1000, k=5):
+    def __init__(self, dist, num_iterations=1000, k=5, max_solutions=1000):
         self.dist = dist
         self.num_iterations = num_iterations
         self.k = k
@@ -44,16 +42,17 @@ class MCMCSampler:
         self.V = np.array([hh for hh in self.all_hhs], dtype=np.int64).T
         self.hh_map = {hh: i for i, hh in enumerate(self.all_hhs)}
         self.index_dist = {i: self.dist[hh] for i, hh in enumerate(self.all_hhs)}
+        self.max_solutions = max_solutions
 
     @lru_cache(maxsize=None)
     def ip_solve_cached(self, counts):
         #TODO use ip_enumerate
         # print(counts)
-        solutions = ip_solve(counts, self.dist, num_solutions=MAX_SOLUTIONS)
+        solutions = ip_solve(counts, self.dist, num_solutions=self.max_solutions)
         if len(solutions) == 0:
             raise Exception('No solutions')
-        elif len(solutions) >= MAX_SOLUTIONS:
-            raise Exception('Too many solutions')
+        elif len(solutions) >= self.max_solutions:
+            raise Exception('Too many solutions. This may mean that k is too large.')
         return solutions
 
     def find_all_feasible_removals(self, x, xprime):
@@ -143,7 +142,7 @@ class MCMCSampler:
             # use ip_solve to solve the new subproblem
             # TODO change this to ip_enumerate?
             all_solutions = self.ip_solve_cached(tuple(self.V.dot(removed)))
-            if len(all_solutions) >= MAX_SOLUTIONS:
+            if len(all_solutions) >= self.max_solutions:
                 # this means our choice of k was too large
                 raise Exception('Too many solutions; k is too large')
             if len(all_solutions) == 1:
@@ -181,7 +180,7 @@ class MCMCSampler:
         # print('Removing', removed)
         # use ip_solve to solve the new subproblem
         all_solutions = self.ip_solve_cached(tup_sum(removed))
-        if len(all_solutions) >= MAX_SOLUTIONS:
+        if len(all_solutions) >= self.max_solutions:
             raise Exception('Too many solutions')
         # randomly choose one of the solutions
         xprime += all_solutions[np.random.choice(len(all_solutions))]
