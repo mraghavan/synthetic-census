@@ -1,4 +1,5 @@
 import sys
+import os
 sys.path.append('../')
 from syn_census.utils.config2 import ParserBuilder
 from syn_census.synthetic_analysis.representativeness import print_results
@@ -6,11 +7,16 @@ from syn_census.synthetic_analysis.representativeness import print_results
 parser_builder = ParserBuilder({
     'state': True,
     'micro_file': True,
-    'synthetic_data': True,
+    'task_name': True,
+    'synthetic_output_dir': True,
     })
 
 if __name__ == '__main__':
     parser_builder.parse_args()
     print(parser_builder.args, file=sys.stderr)
     args = parser_builder.args
-    print_results(args.state, args.synthetic_data, args.micro_file)
+    task_name = args.task_name
+    if task_name != '':
+        task_name += '_'
+    synthetic_file = os.path.join(args.synthetic_output_dir, task_name + 'microdata.csv')
+    print_results(args.state, synthetic_file, args.micro_file)
