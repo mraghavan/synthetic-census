@@ -49,8 +49,7 @@ if __name__ == '__main__':
         task_name = ''
     weights = None
     if args.dist_adjustment != '':
-        dist_adjustment_file = os.path.join(args.synthetic_output_dir, task_name + args.dist_adjustment)
-        with open(dist_adjustment_file, 'rb') as f:
+        with open(args.dist_adjustment, 'rb') as f:
             weights = pickle.load(f)
     out_file = args.synthetic_output_dir + task_name + '%d_%d.pkl' % (task, num_tasks)
     tmp_file = args.synthetic_output_dir + task_name + '%d_%d_tmp.pkl' % (task, num_tasks)

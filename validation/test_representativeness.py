@@ -21,5 +21,4 @@ if __name__ == '__main__':
         task_name += '_'
     synthetic_file = os.path.join(args.synthetic_output_dir, task_name + 'microdata.csv')
     print_results(args.state, synthetic_file, args.micro_file)
-    dist_adjustment_file = os.path.join(args.synthetic_output_dir, task_name + args.dist_adjustment)
-    write_dist_adjustment(args.state, synthetic_file, args.micro_file, dist_adjustment_file)
+    write_dist_adjustment(args.state, synthetic_file, args.micro_file, args.dist_adjustment)

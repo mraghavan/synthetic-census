@@ -28,6 +28,7 @@ class ParserBuilder():
             'synthetic_output_dir',
             'synthetic_data',
             'mcmc_output_dir',
+            'dist_adjustment',
             }
     def __init__(self, requirements):
         self.parser = argparse.ArgumentParser()

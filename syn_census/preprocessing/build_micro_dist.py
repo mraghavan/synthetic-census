@@ -140,13 +140,12 @@ def read_microdata(fname, weights=None):
         if hh_data is not None and hh_data.holder is not None:
             hh_data.fix_family()
             dist[hh_data] += weight
-        print(min(dist.values()), max(dist.values()))
         if weights:
+            print('Using weighted distribution')
             for hh_data in dist:
                 hh_key = hh_to_race_eth_age_tup(hh_data)
                 if hh_key in weights:
                     dist[hh_data] *= weights[hh_key]
-        print(min(dist.values()), max(dist.values()))
         return Counter(normalize(dist))
 
 def read_microdata_granular(fname):
