@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 if [ "$#" -eq 2 ]; then
     PARAM_FILE="$1"
     TASK_NAME="$2"
