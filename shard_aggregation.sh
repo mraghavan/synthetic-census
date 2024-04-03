@@ -14,4 +14,4 @@ else
     exit 1
 fi
 module load sloan/python/modules/python-3.6/gurobipy/9.0.1
-python3 aggregate_data_shards --from_params "$PARAM_FILE" --task_name "$TASK_NAME"
+python3 aggregate_data_shards.py --from_params "$PARAM_FILE" --task_name "$TASK_NAME"
