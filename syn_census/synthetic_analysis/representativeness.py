@@ -209,7 +209,8 @@ def print_all_tex_vars(state):
 def print_results(
         state: str,
         synthetic_data: str,
-        micro_file: str
+        micro_file: str,
+        tag: str = '',
         ):
     df = load_synthetic(synthetic_data)
     # print(df.head())
@@ -234,7 +235,7 @@ def print_results(
     add_tex_var('TVDUnadjustedAccOne', tot_var_dist, precision=3)
     add_tex_var('TVDAdjustedAccOne', size_adjusted, precision=3)
 
-    print_all_tex_vars(state)
+    print_all_tex_vars(state + tag)
 
 def get_adjustments(df, fallback_dist, smoothing=0.001):
     hh_dist = Counter()
@@ -261,11 +262,13 @@ def write_dist_adjustment(
         state: str,
         synthetic_data: str,
         micro_file: str,
-        adjustment_file: str
+        adjustment_file: str,
+        smoothing: float = 0.001,
         ):
     df = load_synthetic(synthetic_data)
     fallback_dist = process_dist(read_microdata(micro_file))
-    ratios = get_adjustments(df, fallback_dist)
-    print(min(ratios.values()), max(ratios.values()))
+    ratios = get_adjustments(df, fallback_dist, smoothing=smoothing)
+    print('Ratio range', min(ratios.values()), max(ratios.values()))
+    ratios['smoothing'] = smoothing
     with open(adjustment_file, 'wb') as f:
         pickle.dump(ratios, f)

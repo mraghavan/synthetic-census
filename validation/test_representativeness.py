@@ -10,6 +10,8 @@ parser_builder = ParserBuilder({
     'task_name': True,
     'synthetic_output_dir': True,
     'dist_adjustment': True,
+    'tag': False,
+    'smoothing': False,
     })
 
 if __name__ == '__main__':
@@ -20,5 +22,5 @@ if __name__ == '__main__':
     if task_name != '':
         task_name += '_'
     synthetic_file = os.path.join(args.synthetic_output_dir, task_name + 'microdata.csv')
-    print_results(args.state, synthetic_file, args.micro_file)
+    print_results(args.state, synthetic_file, args.micro_file, tag=args.tag)
     write_dist_adjustment(args.state, synthetic_file, args.micro_file, args.dist_adjustment)
