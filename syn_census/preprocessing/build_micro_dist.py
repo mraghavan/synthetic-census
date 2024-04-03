@@ -1,6 +1,6 @@
 from collections import Counter, namedtuple
 import re
-from ..utils.census_utils import RACE_HIS_ENUM, Race, get_is_family_from_h_record, get_race_from_p_record, get_n_under_18_from_h_record, get_eth_from_p_record, get_age_from_p_record, get_weight_from_h_record
+from ..utils.census_utils import RACE_HIS_ENUM, Race, get_is_family_from_h_record, get_race_from_p_record, get_n_under_18_from_h_record, get_eth_from_p_record, get_age_from_p_record, get_weight_from_h_record, hh_to_race_eth_age_tup
 from ..utils.knapsack_utils import normalize
 from ..utils.config2 import ParserBuilder
 parser_builder = ParserBuilder(
@@ -117,7 +117,7 @@ class Person():
     def __str__(self):
         return '%s %d %d' % (self.race, self.eth, self.age)
 
-def read_microdata(fname):
+def read_microdata(fname, weights=None):
     dist = Counter()
     with open(fname) as f:
         hh_data = None
@@ -137,11 +137,16 @@ def read_microdata(fname):
                     dist[hh_data] += weight
                 hh_data = Household(get_is_family_from_h_record(line), get_n_under_18_from_h_record(line))
                 weight = get_weight_from_h_record(line)
-                # TODO: figure out if weights are meaningful
-                weight = 1
         if hh_data is not None and hh_data.holder is not None:
             hh_data.fix_family()
             dist[hh_data] += weight
+        print(min(dist.values()), max(dist.values()))
+        if weights:
+            for hh_data in dist:
+                hh_key = hh_to_race_eth_age_tup(hh_data)
+                if hh_key in weights:
+                    dist[hh_data] *= weights[hh_key]
+        print(min(dist.values()), max(dist.values()))
         return Counter(normalize(dist))
 
 def read_microdata_granular(fname):

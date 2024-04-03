@@ -1,6 +1,7 @@
 import pandas as pd
+import pickle
 from collections import Counter
-from ..utils.census_utils import approx_equal, Race, RACES
+from ..utils.census_utils import approx_equal, Race, RACES, hh_to_race_eth_age_tup
 from ..utils.knapsack_utils import normalize
 from ..preprocessing.build_micro_dist import read_microdata
 from ..utils.config2 import ParserBuilder
@@ -56,7 +57,7 @@ def get_block_df(df):
 def process_dist(dist):
     new_dist = Counter()
     for k, v in dist.items():
-        new_dist[k.race_counts + (k.eth_count,) + (k.n_over_18,)] += v
+        new_dist[hh_to_race_eth_age_tup(k)] += v
     return new_dist
 
 def hh_size(tup):
@@ -234,3 +235,37 @@ def print_results(
     add_tex_var('TVDAdjustedAccOne', size_adjusted, precision=3)
 
     print_all_tex_vars(state)
+
+def get_adjustments(df, fallback_dist, smoothing=0.001):
+    hh_dist = Counter()
+    hh_df = df[HH_COLS]
+    counts = hh_df.groupby(list(hh_df.columns)).size().reset_index(name='counts')
+    for _, row in counts.iterrows():
+        hh_counts = tuple(row[HH_COLS].tolist())
+        hh_dist[hh_counts] += row[-1]
+    hh_dist = normalize(hh_dist)
+    # return tvd(hh_dist, fallback_dist), size_race_adjusted_tvd(hh_dist, fallback_dist)
+# def tvd(d1, d2):
+    all_keys = set(hh_dist.keys())
+    all_keys = all_keys.union(set(fallback_dist.keys()))
+    c1 = Counter(normalize(hh_dist))
+    c2 = Counter(normalize(fallback_dist))
+    ratios = {}
+    for key in all_keys:
+        c1[key] += smoothing
+        c2[key] += smoothing
+        ratios[key] = c2[key] / c1[key]
+    return ratios
+
+def write_dist_adjustment(
+        state: str,
+        synthetic_data: str,
+        micro_file: str,
+        adjustment_file: str
+        ):
+    df = load_synthetic(synthetic_data)
+    fallback_dist = process_dist(read_microdata(micro_file))
+    ratios = get_adjustments(df, fallback_dist)
+    print(min(ratios.values()), max(ratios.values()))
+    with open(adjustment_file, 'wb') as f:
+        pickle.dump(ratios, f)

@@ -16,6 +16,7 @@ parser_builder = ParserBuilder({
     'num_tasks': False,
     'task_name': False,
     'include_probs': False,
+    'dist_adjustment': False,
     })
 
 def get_tmp_file(fname_re: str, directory: str):
@@ -46,6 +47,11 @@ if __name__ == '__main__':
         task_name = args.task_name + '_'
     else:
         task_name = ''
+    weights = None
+    if args.dist_adjustment != '':
+        dist_adjustment_file = os.path.join(args.synthetic_output_dir, task_name + args.dist_adjustment)
+        with open(dist_adjustment_file, 'rb') as f:
+            weights = pickle.load(f)
     out_file = args.synthetic_output_dir + task_name + '%d_%d.pkl' % (task, num_tasks)
     tmp_file = args.synthetic_output_dir + task_name + '%d_%d_tmp.pkl' % (task, num_tasks)
     if os.path.exists(out_file):
@@ -60,6 +66,7 @@ if __name__ == '__main__':
             num_tasks,
             include_probs=args.include_probs,
             tmp_file=tmp_file,
+            weights=weights,
             )
 
     print('errors', errors, file=sys.stderr)

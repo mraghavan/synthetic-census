@@ -239,6 +239,9 @@ def num_digits(num):
 def approx_equal(a, b, tolerance=.001):
     return abs(a-b) < tolerance
 
+def hh_to_race_eth_age_tup(hh):
+    return hh.race_counts + (hh.eth_count,) + (hh.n_over_18,)
+
 if __name__ == '__main__':
     print(RACE_HIS_ENUM)
     print(TYPE_INDEX)

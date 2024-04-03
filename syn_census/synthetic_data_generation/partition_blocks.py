@@ -28,6 +28,7 @@ def generate_data(
         num_tasks: int,
         include_probs: bool = False,
         tmp_file: str= '',
+        weights: dict = None,
         ):
     SOLVER_PARAMS.num_sols = num_sols
 
@@ -43,7 +44,7 @@ def generate_data(
     df = df.iloc[first_ind:last_ind+1]
     print(len(df), 'blocks to process')
     print(df.head())
-    hh_dist = encode_hh_dist(read_microdata(micro_file))
+    hh_dist = encode_hh_dist(read_microdata(micro_file, weights=weights))
     errors = []
     output = []
     if tmp_file and os.path.exists(tmp_file):

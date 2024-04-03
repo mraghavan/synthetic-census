@@ -12,6 +12,7 @@ class ParserBuilder():
         'synthetic_output_dir': ('', str),
         'synthetic_data': ('', str),
         'mcmc_output_dir': ('', str),
+        'dist_adjustment': ('', str),
         'num_sols': (100, int),
         'task': (1, int),
         'num_tasks': (1, int),
