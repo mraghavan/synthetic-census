@@ -54,7 +54,7 @@ def plot_disconnected(identifier, k):
 
         save_file = os.path.join('./img/', save_name)
         print(f'Saving to {save_file}')
-        plt.savefig(save_file)
+        plt.savefig(save_file, dpi=900)
         plt.show()
 
 if __name__ == '__main__':
@@ -69,11 +69,13 @@ if __name__ == '__main__':
             identifiers.append(identifier)
             ks.append(int(k))
     # AL
-    # identifiers = ['089-002501-2053', '015-000400-1011']
+    identifiers = ['089-002501-2053', '015-000400-1011']
+    ks = [2, 2]
     #AL 2
     # identifiers = ['117-030211-1047']
     # NV
-    # identifiers = ['007-950702-2098', '031-003110-4013', '003-001611-1018']
+    # identifiers += ['007-950702-2098', '031-003110-4013', '003-001611-1018']
+    # ks += [2, 2, 2]
     # k = 2
     for identifier, k in zip(identifiers, ks):
         plot_disconnected(identifier, k)
