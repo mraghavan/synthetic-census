@@ -133,8 +133,9 @@ def aggregate_shards(
             continue
         try:
             breakdown = sample[row['identifier']]
-        except:
-            # TODO fail loudly
+        except Exception as e:
+            print(e)
+            1/0
             continue
         r_list = [row[x] for x in df.columns if x in CARRYOVER]
         try:
