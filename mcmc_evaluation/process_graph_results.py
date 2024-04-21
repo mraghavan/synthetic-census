@@ -12,6 +12,8 @@ from matplotlib.legend_handler import HandlerTuple
 sys.path.append('../')
 from syn_census.utils.config2 import ParserBuilder
 
+SHOW = True
+
 simple_re = re.compile(r'(\d+-\d+-\d+)_(\d+(.\d+)?)_gibbs_results.pkl')
 reduced_re = re.compile(r'(\d+-\d+-\d+)_(\d+(.\d+)?)_reduced_results.pkl')
 
@@ -21,6 +23,7 @@ parser_builder = ParserBuilder(
          'block_clean_file': True,
          'mcmc_output_dir': True,
          'num_sols': False,
+         'no_show': False,
          })
 
 AXIS_LABELS = {
@@ -138,7 +141,10 @@ def scatter_mixing_times(simple_df: pd.DataFrame,
     plt.yscale('log')
     plt.legend()
     save_if_file(save_file)
-    plt.show()
+    if SHOW:
+        plt.show()
+    else:
+        plt.close()
 
 def scatter_only_reduced(reduced_df: pd.DataFrame,
                          x_axis:str,
@@ -163,7 +169,10 @@ def scatter_only_reduced(reduced_df: pd.DataFrame,
     # print('Saving to', fname)
     # plt.savefig(fname, dpi=300)
     save_if_file(save_file)
-    plt.show()
+    if SHOW:
+        plt.show()
+    else:
+        plt.close()
 
 def scatter_mixing_time_ratios(simple_df: pd.DataFrame, reduced_df: pd.DataFrame, bound='lower'):
     # find common identifiers
@@ -182,14 +191,20 @@ def scatter_mixing_time_ratios(simple_df: pd.DataFrame, reduced_df: pd.DataFrame
         plt.ylabel('min ratio of expected mixing times')
     plt.xlabel('number of states')
     plt.yscale('log')
-    plt.show()
+    if SHOW:
+        plt.show()
+    else:
+        plt.close()
 
 def scatter_solutions_vs_states(simple_df: pd.DataFrame):
     plt.scatter(simple_df['num_solutions'], simple_df['num_states'])
     plt.xlabel('number of solutions')
     plt.ylabel('number of states')
     plt.yscale('log')
-    plt.show()
+    if SHOW:
+        plt.show()
+    else:
+        plt.close()
 
 def connectivity_analysis(reduced_df: pd.DataFrame, output_file: str):
     for k in sorted(reduced_df['k'].unique()):
@@ -253,7 +268,10 @@ def plot_column(df: pd.DataFrame, column: str, x_axis: str, save_file='', title=
         # plt.legend()
     plt.title(title)
     save_if_file(save_file)
-    plt.show()
+    if SHOW:
+        plt.show()
+    else:
+        plt.close()
 
 def hist_column(opt_simple_df: pd.DataFrame, column: str, log=False):
     if log:
@@ -263,7 +281,10 @@ def hist_column(opt_simple_df: pd.DataFrame, column: str, log=False):
         plt.hist(opt_simple_df[column], bins=20)
         plt.xlabel(column)
     plt.ylabel('count')
-    plt.show()
+    if SHOW:
+        plt.show()
+    else:
+        plt.close()
 
 def opt_param(opt_df: pd.DataFrame, param_col: str, save_file=''):
     xy = [(x, y) for x, y in zip(opt_df['num_elements'], opt_df[param_col])]
@@ -281,7 +302,10 @@ def opt_param(opt_df: pd.DataFrame, param_col: str, save_file=''):
         # only show integer y ticks
         plt.yticks(np.arange(min(opt_df[param_col]), max(opt_df[param_col])+1, 1.0))
     save_if_file(save_file)
-    plt.show()
+    if SHOW:
+        plt.show()
+    else:
+        plt.close()
 
 def get_opt_global_param(df: pd.DataFrame, param_col: str, bound_col: str):
     df = df.copy()
@@ -327,6 +351,9 @@ if __name__ == '__main__':
     parser_builder.parse_args()
     print(parser_builder.args)
     args = parser_builder.args
+    plt.rcParams['font.size'] = 14
+
+    SHOW = not args.no_show
 
     blocks_out_file = os.path.join(args.mcmc_output_dir, 'all_blocks.csv')
     jobs_file = os.path.join(args.mcmc_output_dir, 'sampled_block_ids.txt')
@@ -353,7 +380,10 @@ if __name__ == '__main__':
     opt_full_reduced_df_lb = get_min_mixing_time_df(full_reduced_df, 'mixing_time_lb')
     opt_full_reduced_df_ub = get_min_mixing_time_df(full_reduced_df, 'mixing_time_ub')
 
-    opt_param(opt_simple_df, 'gamma', save_file=f'./img/{args.state}_opt_param_gamma.png')
+    opt_param(
+            opt_simple_df,
+            'gamma',
+            save_file=f'./img/{args.state}_opt_param_gamma.png')
     opt_param(opt_reduced_df, 'k', save_file=f'./img/{args.state}_opt_param_k.png')
 
     # scatter_solutions_vs_states(opt_simple_df)
