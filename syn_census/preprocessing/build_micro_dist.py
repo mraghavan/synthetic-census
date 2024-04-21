@@ -137,6 +137,9 @@ def read_microdata(fname, weights=None):
                     dist[hh_data] += weight
                 hh_data = Household(get_is_family_from_h_record(line), get_n_under_18_from_h_record(line))
                 weight = get_weight_from_h_record(line)
+                # Seems to be a bug in the data: weight is either 10 or 0.
+                # Setting to 1 everywhere for now.
+                weight = 1
         if hh_data is not None and hh_data.holder is not None:
             hh_data.fix_family()
             dist[hh_data] += weight
