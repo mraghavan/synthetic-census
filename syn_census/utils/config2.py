@@ -21,6 +21,7 @@ class ParserBuilder():
         'num_samples': (0, int),
         'tag': ('', str),
         'smoothing': (0.001, float),
+        'no_show': (False, bool),
         }
     file_paths = {
             'micro_file',
